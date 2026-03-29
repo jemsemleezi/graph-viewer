@@ -1,0 +1,626 @@
+﻿<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识图谱查看器</title>
+<script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/vis-network@9.1.9/dist/dist/vis-network.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+#toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #1a1d27; border-bottom: 1px solid #2d3748; flex-wrap: wrap; flex-shrink: 0; }
+#toolbar h1 { font-size: 15px; font-weight: 600; color: #7dd3fc; margin-right: 4px; }
+.btn { padding: 5px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all .15s; }
+.btn-primary { background: #3b82f6; color: #fff; }
+.btn-primary:hover { background: #2563eb; }
+.btn-danger { background: #ef4444; color: #fff; }
+.btn-danger:hover { background: #dc2626; }
+.btn-secondary { background: #374151; color: #e2e8f0; }
+.btn-secondary:hover { background: #4b5563; }
+#search { padding: 5px 10px; border-radius: 6px; border: 1px solid #374151; background: #111827; color: #e2e8f0; font-size: 12px; width: 180px; }
+#search:focus { outline: none; border-color: #3b82f6; }
+.badge { padding: 2px 8px; border-radius: 99px; font-size: 11px; background: #1e293b; color: #94a3b8; }
+#filter-type { padding: 4px 8px; border-radius: 6px; border: 1px solid #374151; background: #111827; color: #e2e8f0; font-size: 12px; }
+#legend { display: flex; gap: 10px; align-items: center; margin-left: auto; }
+.leg { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; }
+#main { display: flex; flex: 1; overflow: hidden; }
+#graph { flex: 1; position: relative; }
+#sidebar { width: 300px; background: #1a1d27; border-left: 1px solid #2d3748; display: flex; flex-direction: column; overflow: hidden; transition: width .2s; }
+#sidebar.collapsed { width: 0; }
+#sidebar-inner { padding: 12px; overflow-y: auto; flex: 1; min-width: 280px; }
+#sidebar h2 { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #7dd3fc; }
+.field { margin-bottom: 10px; }
+.field label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 3px; }
+.field input, .field select, .field textarea { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid #374151; background: #111827; color: #e2e8f0; font-size: 12px; font-family: inherit; }
+.field textarea { min-height: 80px; resize: vertical; }
+.stat { font-size: 11px; color: #64748b; }
+.detail-row { font-size: 12px; margin-bottom: 8px; }
+.detail-row .key { color: #94a3b8; font-size: 11px; }
+.detail-row .val { margin-top: 2px; word-break: break-all; }
+.hidden { display: none !important; }
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #e2e8f0; padding: 8px 18px; border-radius: 8px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 999; border: 1px solid #374151; }
+#toast.show { opacity: 1; }
+#toast.err { border-color: #ef4444; color: #fca5a5; }
+#load-panel { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+#load-panel.hidden { display: none !important; }
+#load-box { background: #1a1d27; border: 1px solid #2d3748; border-radius: 12px; padding: 24px; width: 420px; max-width: 95vw; }
+#load-box h3 { font-size: 14px; font-weight: 600; color: #7dd3fc; margin-bottom: 16px; }
+.load-section { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #2d3748; }
+.load-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.load-section h4 { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <h1>&#x1F578; 知识图谱</h1>
+  <input id="search" type="text" placeholder="搜索节点..." oninput="filterNodes(this.value)">
+  <select id="filter-type" onchange="filterNodes(document.getElementById('search').value)">
+    <option value="">全部类型</option>
+    <option value="SKILL">SKILL</option>
+    <option value="TASK">TASK</option>
+    <option value="EVENT">EVENT</option>
+  </select>
+  <button class="btn btn-secondary" id="refresh-btn" onclick="manualRefresh()">&#x21BB; 刷新</button>
+  <button class="btn btn-secondary" id="auto-refresh-btn" onclick="toggleAutoRefresh()">&#x23F1; 定时: OFF</button>
+  <button class="btn btn-secondary" onclick="openLoadPanel()">&#x1F4C2; 载入图谱</button>
+  <button class="btn btn-secondary" onclick="toggleSidebar()">&#x2630; 面板</button>
+  <div id="legend">
+    <div class="leg"><div class="leg-dot" style="background:#34d399"></div>SKILL</div>
+    <div class="leg"><div class="leg-dot" style="background:#60a5fa"></div>TASK</div>
+    <div class="leg"><div class="leg-dot" style="background:#f87171"></div>EVENT</div>
+  </div>
+  <span id="source-info" class="badge">加载中...</span>
+</div>
+<div id="main">
+  <div id="graph"></div>
+  <div id="sidebar">
+    <div id="sidebar-inner">
+      <div id="panel-detail" class="hidden">
+        <h2 id="detail-title">节点详情</h2>
+        <div id="detail-body"></div>
+        <div id="edit-form" class="hidden" style="margin-top:8px">
+          <div class="field"><label>名称</label><input id="edit-name" type="text"></div>
+          <div class="field"><label>类型</label>
+            <select id="edit-type">
+              <option value="SKILL">SKILL</option>
+              <option value="TASK">TASK</option>
+              <option value="EVENT">EVENT</option>
+            </select>
+          </div>
+          <div class="field"><label>描述</label><textarea id="edit-desc"></textarea></div>
+          <div class="field"><label>内容</label><textarea id="edit-content"></textarea></div>
+          <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="submitEditNode()">保存</button>
+          <button class="btn btn-secondary" style="width:100%;margin-top:4px" onclick="toggleEditForm(false)">取消</button>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="toggleEditForm(true)">编辑节点</button>
+        <button class="btn btn-danger" style="width:100%;margin-top:6px" onclick="deleteSelectedNode()">删除节点</button>
+        <button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="closeDetail()">关闭</button>
+      </div>
+      <div id="panel-edge-detail" class="hidden">
+        <h2 id="edge-detail-title">关系详情</h2>
+        <div id="edge-detail-body"></div>
+        <button class="btn btn-danger" style="width:100%;margin-top:8px" onclick="deleteSelectedEdge()">删除关系</button>
+        <button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="closeDetail()">关闭</button>
+      </div>
+      <div id="panel-add-node" class="hidden">
+        <h2>新增节点</h2>
+        <div class="field"><label>名称 *</label><input id="n-name" type="text" placeholder="节点名称"></div>
+        <div class="field"><label>类型</label>
+          <select id="n-type">
+            <option value="SKILL">SKILL</option>
+            <option value="TASK">TASK</option>
+            <option value="EVENT">EVENT</option>
+          </select>
+        </div>
+        <div class="field"><label>描述</label><textarea id="n-desc" placeholder="描述"></textarea></div>
+        <div class="field"><label>内容</label><textarea id="n-content" placeholder="内容"></textarea></div>
+        <button class="btn btn-primary" style="width:100%" onclick="submitAddNode()">提交</button>
+        <button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="closePanels()">取消</button>
+      </div>
+      <div id="panel-add-edge" class="hidden">
+        <h2>新增关系</h2>
+        <div class="field"><label>起始节点 *</label>
+          <input id="e-from" list="node-list-from" placeholder="节点名称">
+          <datalist id="node-list-from"></datalist>
+        </div>
+        <div class="field"><label>目标节点 *</label>
+          <input id="e-to" list="node-list-to" placeholder="节点名称">
+          <datalist id="node-list-to"></datalist>
+        </div>
+        <div class="field"><label>关系类型</label>
+          <select id="e-type">
+            <option value="USED_SKILL">USED_SKILL</option>
+            <option value="SOLVED_BY">SOLVED_BY</option>
+            <option value="REQUIRES">REQUIRES</option>
+            <option value="PATCHES">PATCHES</option>
+            <option value="CONFLICTS_WITH">CONFLICTS_WITH</option>
+          </select>
+        </div>
+        <div class="field"><label>说明</label><textarea id="e-desc" placeholder="关系说明"></textarea></div>
+        <button class="btn btn-primary" style="width:100%" onclick="submitAddEdge()">提交</button>
+        <button class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="closePanels()">取消</button>
+      </div>
+      <div id="panel-default">
+        <h2>操作</h2>
+        <p class="stat" style="margin-bottom:12px">点击节点查看详情</p>
+        <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="showPanel('panel-add-node')">+ 新增节点</button>
+        <button class="btn btn-secondary" style="width:100%" onclick="showPanel('panel-add-edge')">+ 新增关系</button>
+        <hr style="border-color:#2d3748;margin:12px 0">
+        <h2>统计</h2>
+        <div id="stats-body" class="stat">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="load-panel" class="hidden">
+  <div id="load-box">
+    <h3>&#x1F4C2; 载入图谱</h3>
+    <div class="load-section">
+      <h4>上传 JSON 文件（前端解析）</h4>
+      <input type="file" id="json-file" accept=".json" style="font-size:12px;color:#e2e8f0;width:100%;margin-bottom:8px">
+      <button class="btn btn-primary" style="width:100%" onclick="loadJsonFile()">载入 JSON</button>
+    </div>
+    <div class="load-section">
+      <h4>指定 SQLite 数据库路径</h4>
+      <div class="field"><input id="db-path" type="text" placeholder="C:\\path\\to\\graph-memory.db"></div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="switchDb()">切换数据库</button>
+      <button class="btn btn-secondary" style="width:100%;margin-bottom:8px" onclick="resetDb()">恢复默认数据库</button>
+      <button class="btn btn-secondary" style="width:100%" onclick="setCurrentAsDefault()">设置当前数据库为默认</button>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:4px" onclick="closeLoadPanel()">关闭</button>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const TYPE_COLORS = { SKILL: '#34d399', TASK: '#60a5fa', EVENT: '#f87171' };
+const EDGE_COLORS = { USED_SKILL: '#a78bfa', SOLVED_BY: '#fb923c', REQUIRES: '#38bdf8', PATCHES: '#f9a8d4', CONFLICTS_WITH: '#fbbf24' };
+let network = null;
+let nodesDS = new vis.DataSet();
+let edgesDS = new vis.DataSet();
+let allNodes = [];
+let allEdges = [];
+let selectedNodeId = null;
+let selectedEdgeId = null;
+let autoRefreshTimer = null;
+let autoRefreshOn = false;
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type === 'err' ? ' err' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = ''; }, 2800);
+}
+function showPanel(id) {
+  ['panel-detail','panel-edge-detail','panel-add-node','panel-add-edge','panel-default'].forEach(p => {
+    document.getElementById(p).classList.toggle('hidden', p !== id);
+  });
+}
+function closePanels() { showPanel('panel-default'); }
+function closeDetail() {
+  closePanels(); selectedNodeId = null;
+  if (network) network.unselectAll();
+}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+function openLoadPanel() { document.getElementById('load-panel').classList.remove('hidden'); }
+function closeLoadPanel() { document.getElementById('load-panel').classList.add('hidden'); }
+
+function initNetwork() {
+  const container = document.getElementById('graph');
+  const options = {
+    nodes: { shape: 'dot', size: 8, font: { color: '#f1f5f9', size: 13 }, borderWidth: 1.5 },
+    edges: { arrows: 'to', font: { color: '#ccc', size: 10, align: 'middle' }, smooth: { type: 'curvedCW', roundness: 0.15 } },
+    physics: {
+      enabled: true,
+      stabilization: {
+        enabled: true,
+        iterations: 150,
+        updateInterval: 50,
+        fit: false
+      },
+      barnesHut: {
+        gravitationalConstant: -3000,
+        centralGravity: 0.3,
+        springLength: 120,
+        springConstant: 0.02,
+        damping: 0.08,
+        avoidOverlap: 0.8
+      },
+      maxVelocity: 30,
+      minVelocity: 0.1,
+      timestep: 0.5
+    },
+    layout: { improvedLayout: true },
+    interaction: { hover: true, tooltipDelay: 200 }
+  };
+  network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, options);
+  // 稳定完成后 fit 并关闭物理引擎，避免大图持续抖动
+  network.on('stabilizationIterationsDone', function() {
+    document.getElementById('toast').style.opacity = '0';
+    network.moveTo({ scale: 0.282, animation: { duration: 200, easingFunction: 'easeInOutQuad' } });
+    setTimeout(function() {
+      network.setOptions({ physics: { enabled: true, stabilization: { enabled: false } } });
+    }, 500);
+  });
+  // 实时稳定进度（大图时可见）
+  
+  network.on('click', function(params) {
+    if (params.nodes.length > 0) {
+      selectedEdgeId = null;
+      selectedNodeId = params.nodes[0];
+      showNodeDetail(selectedNodeId);
+    } else if (params.edges.length > 0) {
+      selectedNodeId = null;
+      selectedEdgeId = params.edges[0];
+      showEdgeDetail(selectedEdgeId);
+    } else {
+      toggleEditForm(false);
+      closeDetail();
+    }
+  });
+}
+
+async function loadGraph() {
+  try {
+    const r = await fetch('/api/graph');
+    const data = await r.json();
+    allNodes = data.nodes || [];
+    allEdges = data.edges || [];
+    renderGraph(allNodes, allEdges);
+    updateStats();
+    updateSourceInfo();
+    populateNodeList();
+  } catch(e) { toast('加载失败: ' + e.message, 'err'); }
+}
+
+function renderGraph(nodes, edges) {
+  if (!network) return;
+  nodesDS.clear(); edgesDS.clear();
+  nodesDS.add(nodes.map(n => ({
+    id: n.id, label: n.name, title: n.description || n.name,
+    color: { background: TYPE_COLORS[n.type] || '#94a3b8', border: TYPE_COLORS[n.type] || '#94a3b8' },
+    font: { color: '#f1f5f9', size: 13 }, shape: 'dot',
+    size: 8 + Math.min((n.pagerank || 0) * 20, 14)
+  })));
+  edgesDS.add(edges.map(e => ({
+    id: e.id, from: e.from_id, to: e.to_id, label: e.type,
+    color: { color: EDGE_COLORS[e.type] || '#555', highlight: '#e94560' },
+    font: { color: '#ccc', size: 10 }
+  })));
+  // 数据更新完毕后重启物理引擎稳定，稳定完后永久关闭并fit
+  network.setOptions({ physics: { enabled: true, stabilization: { enabled: true, iterations: 150, updateInterval: 50, fit: false } } });
+  // 不依赖 stabilizationIterationsDone，直接延迟 redraw + moveTo
+  setTimeout(function() {
+    network.redraw();
+    network.moveTo({ scale: 0.282, animation: { duration: 200, easingFunction: 'easeInOutQuad' } });
+    network.setOptions({ physics: { enabled: true, stabilization: { enabled: false } } });
+  }, 1500);
+}
+
+function reload() { return loadGraph(); }
+function manualRefresh() {
+  const btn = document.getElementById('refresh-btn');
+  btn.textContent = '...'; btn.disabled = true;
+  reload().then(() => { btn.textContent = '\u21BB 刷新'; btn.disabled = false; });
+}
+function toggleAutoRefresh() {
+  const btn = document.getElementById('auto-refresh-btn');
+  autoRefreshOn = !autoRefreshOn;
+  if (autoRefreshOn) {
+    autoRefreshTimer = setInterval(() => reload(), 10000);
+    btn.textContent = '\u23F1 定时: ON'; btn.style.background = '#10b981';
+  } else {
+    clearInterval(autoRefreshTimer); autoRefreshTimer = null;
+    btn.textContent = '\u23F1 定时: OFF'; btn.style.background = '';
+  }
+}
+
+function filterNodes(query) {
+  const q = query.trim().toLowerCase();
+  const typeFilter = document.getElementById('filter-type').value;
+  if (!q && !typeFilter) { renderGraph(allNodes, allEdges); return; }
+  const matched = allNodes.filter(n =>
+    (!q || n.name.toLowerCase().includes(q) || (n.description||'').toLowerCase().includes(q)) &&
+    (!typeFilter || n.type === typeFilter)
+  );
+  const matchedIds = new Set(matched.map(n => n.id));
+  const filteredEdges = allEdges.filter(e => matchedIds.has(e.from_id) && matchedIds.has(e.to_id));
+  renderGraph(matched, filteredEdges);
+}
+
+function showNodeDetail(nodeId) {
+  const n = allNodes.find(x => x.id === nodeId);
+  if (!n) return;
+  toggleEditForm(false);
+  showPanel('panel-detail');
+  document.getElementById('detail-title').textContent = n.name;
+  const rows = [
+    ['类型', n.type], ['ID', n.id], ['社区', n.community_id || '—'],
+    ['PageRank', n.pagerank ? n.pagerank.toFixed(4) : '—'],
+    ['描述', n.description || '—'], ['内容', n.content || '—']
+  ];
+  document.getElementById('detail-body').innerHTML = rows.map(([k,v]) =>
+    '<div class="detail-row"><div class="key">' + esc(k) + '</div><div class="val">' + esc(String(v)) + '</div></div>'
+  ).join('');
+}
+
+async function deleteSelectedNode() {
+  if (!selectedNodeId) return;
+  if (!confirm('确认删除该节点？')) return;
+  try {
+    const r = await fetch('/api/node/' + encodeURIComponent(selectedNodeId), { method: 'DELETE' });
+    const d = await r.json();
+    if (r.ok || d.status === 'frontend_only') {
+      const edgeIdsToRemove = allEdges.filter(e => e.from_id === selectedNodeId || e.to_id === selectedNodeId).map(e => e.id);
+      allNodes = allNodes.filter(n => n.id !== selectedNodeId);
+      allEdges = allEdges.filter(e => e.from_id !== selectedNodeId && e.to_id !== selectedNodeId);
+      nodesDS.remove(selectedNodeId);
+      edgesDS.remove(edgeIdsToRemove);
+      selectedNodeId = null; closePanels(); toast('节点已删除');
+      updateStats();
+      if (d.warning) toast(d.warning, 'warn');
+    } else { toast(d.error || '删除失败', 'err'); }
+  } catch(e) { toast('删除失败: ' + e.message, 'err'); }
+}
+
+async function submitAddNode() {
+  const name = document.getElementById('n-name').value.trim();
+  if (!name) { toast('名称不能为空', 'err'); return; }
+  const type = document.getElementById('n-type').value;
+  const desc = document.getElementById('n-desc').value.trim();
+  const content = document.getElementById('n-content').value.trim();
+  try {
+    const r = await fetch('/api/node', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, type, description: desc, content })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      const color = TYPE_COLORS[type] || '#94a3b8';
+      const node = { id: d.id, name, type, description: desc, content, pagerank: 0, community_id: null, status: 'active' };
+      allNodes.push(node);
+      nodesDS.add({ id: d.id, label: name, title: desc || name, color: { background: color, border: color }, size: 8 });
+      populateNodeList(); closePanels(); toast('节点已添加');
+      updateStats();
+      document.getElementById('n-name').value = '';
+      document.getElementById('n-desc').value = '';
+      document.getElementById('n-content').value = '';
+    } else { toast(d.error || '添加失败', 'err'); }
+  } catch(e) { toast('添加失败: ' + e.message, 'err'); }
+}
+
+async function submitAddEdge() {
+  const fromName = document.getElementById('e-from').value.trim();
+  const toName = document.getElementById('e-to').value.trim();
+  const type = document.getElementById('e-type').value;
+  const desc = document.getElementById('e-desc').value.trim();
+  const from = allNodes.find(n => n.name === fromName);
+  const to = allNodes.find(n => n.name === toName);
+  if (!from) { toast('起始节点不存在', 'err'); return; }
+  if (!to) { toast('目标节点不存在', 'err'); return; }
+  try {
+    const r = await fetch('/api/edge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from_id: from.id, to_id: to.id, type, instruction: desc })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      const color = EDGE_COLORS[type] || '#555';
+      const edge = { id: d.id, from_id: from.id, to_id: to.id, type, instruction: desc, condition: '' };
+      allEdges.push(edge);
+      edgesDS.add({ id: d.id, from: from.id, to: to.id, label: type, arrows: 'to', color: { color, highlight: '#e94560' }, font: { color: '#ccc', size: 10 } });
+      closePanels(); toast('关系已添加');
+      document.getElementById('e-from').value = '';
+      document.getElementById('e-to').value = '';
+      document.getElementById('e-desc').value = '';
+    } else { toast(d.error || '添加失败', 'err'); }
+  } catch(e) { toast('添加失败: ' + e.message, 'err'); }
+}
+
+async function loadJsonFile() {
+  const file = document.getElementById('json-file').files[0];
+  if (!file) { toast('请先选择文件', 'err'); return; }
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const r = await fetch('/api/load-json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) { const d = await r.json(); toast(d.error || '上传失败', 'err'); return; }
+    allNodes = data.nodes || []; allEdges = data.edges || [];
+    renderGraph(allNodes, allEdges);
+    updateStats(); populateNodeList();
+    document.getElementById('source-info').textContent = 'JSON: ' + file.name;
+    closeLoadPanel(); toast('JSON 载入成功');
+  } catch(e) { toast('JSON 解析失败: ' + e.message, 'err'); }
+}
+
+async function switchDb() {
+  const path = document.getElementById('db-path').value.trim();
+  if (!path) { toast('请输入路径', 'err'); return; }
+  try {
+    const r = await fetch('/api/switch-db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) });
+    const d = await r.json();
+    if (r.ok) { await loadGraph(); closeLoadPanel(); toast('已切换: ' + path); }
+    else { toast(d.error || '切换失败', 'err'); }
+  } catch(e) { toast('切换失败: ' + e.message, 'err'); }
+}
+
+async function resetDb() {
+  try {
+    const r = await fetch('/api/reset-db', { method: 'POST' });
+    if (r.ok) { await loadGraph(); closeLoadPanel(); toast('已恢复默认数据库'); }
+    else { toast('恢复失败', 'err'); }
+  } catch(e) { toast('恢复失败: ' + e.message, 'err'); }
+}
+
+async function setCurrentAsDefault() {
+  try {
+    const r = await fetch('/api/set-default-db', { method: 'POST' });
+    if (r.ok) { const d = await r.json(); toast('已设置为默认数据库: ' + d.path); }
+    else { toast('设置失败', 'err'); }
+  } catch(e) { toast('设置失败: ' + e.message, 'err'); }
+}
+
+async function updateStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+    const types = Object.entries(d.types || {}).map(([k,v]) => k + ': ' + v).join(', ');
+    document.getElementById('stats-body').innerHTML =
+      '节点: <b>' + d.nodes + '</b> &nbsp; 边: <b>' + d.edges + '</b> &nbsp; 社区: <b>' + d.communities + '</b><br><span style="margin-top:4px;display:block">' + (types || '—') + '</span>';
+  } catch(e) {}
+}
+
+async function updateSourceInfo() {
+  try {
+    const r = await fetch('/api/current-db');
+    const d = await r.json();
+    document.getElementById('source-info').textContent = 'DB: ' + (d.path || '').split('\\').pop();
+  } catch(e) {
+    document.getElementById('source-info').textContent = 'SQLite';
+  }
+}
+
+function populateNodeList() {
+  const names = allNodes.map(n => n.name);
+  ['node-list-from', 'node-list-to'].forEach(id => {
+    const dl = document.getElementById(id);
+    if (dl) dl.innerHTML = names.map(n => '<option value="' + esc(n) + '">').join('');
+  });
+}
+
+async function addNode() {
+  const name = document.getElementById('new-node-name').value.trim();
+  const type = document.getElementById('new-node-type').value;
+  const desc = document.getElementById('new-node-desc').value.trim();
+  if (!name) { toast('请输入节点名称', 'err'); return; }
+  const r = await fetch('/api/nodes', { method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name, type, description: desc }) });
+  const d = await r.json();
+  if (r.ok) {
+    const color = TYPE_COLORS[type] || '#94a3b8';
+    nodesDS.add({ id: d.id, label: name, title: desc, color: { background: color, border: color, highlight: { background: '#fff', border: color } }, font: { color: '#fff' }, shape: 'dot', size: 14 });
+    allNodes.push(d);
+    populateNodeList();
+    closePanels();
+    toast('节点已添加');
+  } else toast(d.error || '错误', 'err');
+}
+
+async function addEdge() {
+  const fromName = document.getElementById('edge-from').value.trim();
+  const toName = document.getElementById('edge-to').value.trim();
+  const type = document.getElementById('edge-type').value;
+  const from = allNodes.find(n => n.name === fromName);
+  const to = allNodes.find(n => n.name === toName);
+  if (!from || !to) { toast('找不到节点', 'err'); return; }
+  const r = await fetch('/api/edges', { method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ from_id: from.id, to_id: to.id, type }) });
+  const d = await r.json();
+  if (r.ok) {
+    const c = EDGE_COLORS[type] || '#555';
+    edgesDS.add({ id: d.id, from: from.id, to: to.id, label: type, arrows: 'to',
+      color: { color: c, highlight: '#e94560' }, font: { color: '#ccc', size: 10 } });
+    allEdges.push(d);
+    closePanels();
+    toast('关系已添加');
+  } else toast(d.error || '错误', 'err');
+}
+
+
+function showEdgeDetail(edgeId) {
+  const e = allEdges.find(e => e.id === edgeId);
+  if (!e) return;
+  const fromNode = allNodes.find(n => n.id === e.from_id);
+  const toNode = allNodes.find(n => n.id === e.to_id);
+  document.getElementById('edge-detail-title').textContent = e.type || '关系详情';
+  document.getElementById('edge-detail-body').innerHTML =
+    '<p><b>类型:</b> ' + (e.type||'-') + '</p>' +
+    '<p><b>来源:</b> ' + (fromNode ? fromNode.name : e.from_id) + '</p>' +
+    '<p><b>目标:</b> ' + (toNode ? toNode.name : e.to_id) + '</p>' +
+    (e.instruction ? '<p><b>说明:</b> ' + e.instruction + '</p>' : '') +
+    (e.condition ? '<p><b>条件:</b> ' + e.condition + '</p>' : '');
+  showPanel('panel-edge-detail');
+}
+
+function toggleEditForm(show) {
+  const ef = document.getElementById('edit-form');
+  const btnEdit = document.querySelector('#panel-detail .btn-secondary[onclick="toggleEditForm(true)"]');
+  const btnDelete = document.querySelector('#panel-detail .btn-danger');
+  const btnClose = document.querySelector('#panel-detail .btn-secondary[onclick="closeDetail()"]');
+  if (show) {
+    const node = allNodes.find(n => n.id === selectedNodeId);
+    if (!node) return;
+    document.getElementById('edit-name').value = node.name || '';
+    document.getElementById('edit-type').value = node.type || 'SKILL';
+    document.getElementById('edit-desc').value = node.description || '';
+    document.getElementById('edit-content').value = node.content || '';
+    ef.classList.remove('hidden');
+    if (btnEdit) btnEdit.classList.add('hidden');
+    if (btnDelete) btnDelete.classList.add('hidden');
+    if (btnClose) btnClose.classList.add('hidden');
+  } else {
+    ef.classList.add('hidden');
+    if (btnEdit) btnEdit.classList.remove('hidden');
+    if (btnDelete) btnDelete.classList.remove('hidden');
+    if (btnClose) btnClose.classList.remove('hidden');
+  }
+}
+
+async function submitEditNode() {
+  if (!selectedNodeId) return;
+  const name = document.getElementById('edit-name').value.trim();
+  const type = document.getElementById('edit-type').value;
+  const desc = document.getElementById('edit-desc').value.trim();
+  const content = document.getElementById('edit-content').value.trim();
+  if (!name) { toast('名称不能为空', 'err'); return; }
+  try {
+    const r = await fetch('/api/node/' + encodeURIComponent(selectedNodeId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, type, description: desc, content })
+    });
+    if (r.ok) {
+      const node = allNodes.find(n => n.id === selectedNodeId);
+      if (node) { node.name = name; node.type = type; node.description = desc; node.content = content; }
+      nodesDS.update({ id: selectedNodeId, label: name, color: { background: TYPE_COLORS[type]||'#94a3b8', border: TYPE_COLORS[type]||'#94a3b8' } });
+      showNodeDetail(selectedNodeId);
+      toggleEditForm(false);
+      toast('节点已更新');
+    } else {
+      const t = await r.text(); toast('更新失败: ' + t, 'err');
+    }
+  } catch(e) { toast('更新失败: ' + e.message, 'err'); }
+}
+
+async function deleteSelectedEdge() {
+  if (!selectedEdgeId) return;
+  if (!confirm('确认删除该关系？')) return;
+  try {
+    const r = await fetch('/api/edge/' + encodeURIComponent(selectedEdgeId), { method: 'DELETE' });
+    const d = await r.json();
+    if (r.ok || d.status === 'frontend_only') {
+      allEdges = allEdges.filter(e => e.id !== selectedEdgeId);
+      edgesDS.remove(selectedEdgeId);
+      selectedEdgeId = null; closePanels(); toast('关系已删除');
+      updateStats();
+      if (d.warning) toast(d.warning, 'warn');
+    } else { toast(d.error || '删除失败', 'err'); }
+  } catch(e) { toast('删除失败: ' + e.message, 'err'); }
+}
+window.addEventListener('load', () => { initNetwork(); loadGraph(); });
+</script>
+</body>
+</html>
