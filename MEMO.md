@@ -4,7 +4,7 @@ _最后更新：2026-03-29_
 
 ## 项目概况
 
-- **路径：** `C:\Users\15967\.openclaw\workspace\projects\graph-viewer`
+- **路径：** `%USERPROFILE%\.openclaw\workspace\projects\graph-viewer`
 - **技术栈：** 纯 HTML + JavaScript 前端，vis-network 9.1.9 力导向图，后端 Flask（Python）
 - **主文件：** `static/index.html`（前端），`server.py`（后端）
 - **服务端口：** 7892
@@ -105,7 +105,7 @@ const EDGE_COLORS = { USED_SKILL: '#a78bfa', SOLVED_BY: '#fb923c', REQUIRES: '#3
 
 | 问题 | 位置 | 改进方案 |
 |------|------|----------|
-| 硬编码用户路径 `C:\Users\15967` | `server.py` `_BUILTIN_DEFAULT` | 改用 `os.path.expanduser('~')` 动态获取用户目录 |
+| 硬编码用户路径 `C:\Users\XXX` | `server.py` `_BUILTIN_DEFAULT` | 改用 `os.path.expanduser('~')` 动态获取用户目录 |
 | 数据库连接未用上下文管理器 | `server.py` 各路由 | 全部改为 `with DbConnectionManager() as conn:` 防止连接泄漏导致 DB locked |
 | 删除节点时 `PRAGMA foreign_keys=OFF` | `server.py` `delete_node` | 改为先手动删关联边再删节点，保持外键约束开启 |
 
