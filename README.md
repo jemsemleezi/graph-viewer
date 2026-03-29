@@ -41,7 +41,7 @@ graph-viewer/
 ### 方式二：命令行启动
 
 ```powershell
-cd C:\Users\15967\.openclaw\workspace\projects\graph-viewer
+cd %USERPROFILE%\.openclaw\workspace\projects\graph-viewer
 uv run python tray.py
 ```
 
