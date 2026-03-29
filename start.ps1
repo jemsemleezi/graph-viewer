@@ -17,7 +17,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $serverScript = Join-Path $scriptDir 'server.py'
 
 Write-Host "Starting Graph Viewer at http://127.0.0.1:$port ..."
-Start-Process python -ArgumentList $serverScript -WindowStyle Hidden
+Start-Process uv -ArgumentList "run python `"$serverScript`"" -WindowStyle Hidden
 Start-Sleep -Seconds 2
 
 # 验证启动

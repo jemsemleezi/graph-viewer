@@ -99,6 +99,46 @@ const EDGE_COLORS = { USED_SKILL: '#a78bfa', SOLVED_BY: '#fb923c', REQUIRES: '#3
 
 ---
 
+## 待改进项（来源：GLM5 代码审查 2026-03-29）
+
+### 🔴 高优先级
+
+| 问题 | 位置 | 改进方案 |
+|------|------|----------|
+| 硬编码用户路径 `C:\Users\15967` | `server.py` `_BUILTIN_DEFAULT` | 改用 `os.path.expanduser('~')` 动态获取用户目录 |
+| 数据库连接未用上下文管理器 | `server.py` 各路由 | 全部改为 `with DbConnectionManager() as conn:` 防止连接泄漏导致 DB locked |
+| 删除节点时 `PRAGMA foreign_keys=OFF` | `server.py` `delete_node` | 改为先手动删关联边再删节点，保持外键约束开启 |
+
+### 🟡 中优先级
+
+| 问题 | 位置 | 改进方案 |
+|------|------|----------|
+| 全局变量线程不安全 | `server.py` `_current_db_path` / `_json_graph` | 迁移至 Flask `g` 对象或加锁保护，避免并发写冲突 |
+| `import` 语句在循环内部 | `tray.py` 健康检查循环 | 移至文件顶部 |
+| 异常处理过于宽泛 `except Exception` | `tray.py` `kill_port` 等函数 | 细化为具体异常类型，避免吞掉真实错误 |
+| `start.ps1` 与 `tray.py` 重复实现端口清理逻辑 | `start.ps1` / `tray.py` | 统一入口：仅保留 `tray.py` 中的逻辑，`start.ps1` 改为直接调用 `tray.py` |
+
+### 🟢 低优先级 / 架构优化
+
+| 问题 | 改进方案 |
+|------|----------|
+| `server.py` 单文件混杂配置、数据库、路由逻辑 | 拆分为 `config.py` / `db.py` / `routes/` 分层结构（中期重构） |
+| 用 `netstat` 字符串解析查找 PID（慢且脆弱）| 引入 `psutil` 替代：`pip install psutil`，速度快、跨平台 |
+| 数据库 Schema 未配置 `ON DELETE CASCADE` | 修改 `gm_edges` 外键定义加 `ON DELETE CASCADE`，删节点时自动清理关联边 |
+| 每次请求新建 SQLite 连接，无连接池 | 低并发场景可接受，中期考虑 SQLAlchemy 连接池 |
+| VBS 启动强依赖 `uv` 在 PATH 中 | 增加 `uv` 存在性检查，不存在时回退到 `python` 直接启动 |
+
+### 📋 改进执行顺序建议
+1. 修复硬编码路径（影响跨机器使用，优先级最高）
+2. 引入 `DbConnectionManager` 上下文管理器（防止 DB locked）
+3. 修复删除节点的外键约束问题
+4. 将 `import` 移至顶部 + 细化异常处理
+5. 安装 `psutil` 替换 `netstat` 解析
+6. 数据库 Schema 增加 `ON DELETE CASCADE`
+7. 分层架构重构（长期）
+
+---
+
 ## 已解决的历史问题
 
 | 问题 | 解决时间 | 解决方案 |

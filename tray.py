@@ -45,7 +45,19 @@ def create_icon_image(status="on"):
 
 
 def kill_port(port):
-    """杀掉占用指定端口的进程"""
+    """杀掉占用指定端口的进程（优先用 psutil，fallback 用 netstat）"""
+    try:
+        import psutil
+        for conn in psutil.net_connections(kind='tcp'):
+            if conn.laddr.port == port and conn.status == 'LISTEN':
+                try:
+                    psutil.Process(conn.pid).kill()
+                except Exception:
+                    pass
+        return
+    except ImportError:
+        pass
+    # fallback: netstat
     try:
         result = subprocess.check_output(
             f"netstat -nao | findstr :{port}",
