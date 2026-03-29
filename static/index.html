@@ -28,7 +28,7 @@ body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; 
 .leg { display: flex; align-items: center; gap: 4px; font-size: 11px; }
 .leg-dot { width: 10px; height: 10px; border-radius: 50%; }
 #main { display: flex; flex: 1; overflow: hidden; }
-#graph { flex: 1; position: relative; }
+#graph { flex: 1; position: relative; will-change: transform; }
 #sidebar { width: 300px; background: #1a1d27; border-left: 1px solid #2d3748; display: flex; flex-direction: column; overflow: hidden; transition: width .2s; }
 #sidebar.collapsed { width: 0; }
 #sidebar-inner { padding: 12px; overflow-y: auto; flex: 1; min-width: 280px; }
@@ -90,7 +90,7 @@ body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; 
       </select>
       <span id="table-count" class="badge">-</span>
     </div>
-    <div style="flex:1;overflow:auto;">
+    <div style="flex:1;overflow:auto;will-change:transform;">
       <table id="nodes-table" style="width:100%;border-collapse:collapse;font-size:12px;display:none;">
         <thead style="position:sticky;top:0;background:#1a1d27;z-index:1;">
           <tr>
@@ -229,6 +229,70 @@ let selectedNodeId = null;
 let selectedEdgeId = null;
 let autoRefreshTimer = null;
 let autoRefreshOn = false;
+
+// ── 虚拟滚动核心 ──
+var _vsState = {};
+var ROW_H = 36;   // 每行高度(px)
+var BUFFER = 5;   // 上下各多渲染几行
+
+function _vScroll(tbodyId, allRows, rowRenderer) {
+  var tbody = document.getElementById(tbodyId);
+  var container = tbody.closest('.table-scroll-wrap') || tbody.parentElement.parentElement;
+
+  // 存储全量数据
+  _vsState[tbodyId] = { allRows: allRows, rowRenderer: rowRenderer };
+
+  // 设置占位高度
+  var total = allRows.length * ROW_H;
+  var spacer = document.getElementById(tbodyId + '-spacer');
+  if (!spacer) {
+    spacer = document.createElement('tr');
+    spacer.id = tbodyId + '-spacer';
+    spacer.style.height = '0px';
+    tbody.appendChild(spacer);
+  }
+
+  // 绑定滚动（只绑一次）
+  if (!container._vsBound) {
+    container._vsBound = true;
+    container.addEventListener('scroll', function() {
+      _vsRender(tbodyId, container);
+    }, { passive: true });
+  }
+
+  // 设置容器高度锁定（让滚动条正确）
+  tbody.style.position = 'relative';
+
+  // 首次渲染
+  _vsRender(tbodyId, container);
+}
+
+function _vsRender(tbodyId, container) {
+  var state = _vsState[tbodyId];
+  if (!state) return;
+  var allRows = state.allRows;
+  var rowRenderer = state.rowRenderer;
+  var tbody = document.getElementById(tbodyId);
+
+  var scrollTop = container.scrollTop;
+  var viewH = container.clientHeight;
+
+  var startIdx = Math.max(0, Math.floor(scrollTop / ROW_H) - BUFFER);
+  var endIdx = Math.min(allRows.length, Math.ceil((scrollTop + viewH) / ROW_H) + BUFFER);
+
+  // 顶部空白行
+  var topH = startIdx * ROW_H;
+  // 底部空白行
+  var botH = (allRows.length - endIdx) * ROW_H;
+
+  var html = `<tr id="${tbodyId}-spacer-top" style="height:${topH}px;"><td colspan="99"></td></tr>`;
+  for (var i = startIdx; i < endIdx; i++) {
+    html += rowRenderer(allRows[i]);
+  }
+  html += `<tr id="${tbodyId}-spacer-bot" style="height:${botH}px;"><td colspan="99"></td></tr>`;
+
+  tbody.innerHTML = html;
+}
 
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -779,27 +843,26 @@ function renderNodesTable(rows) {
   document.getElementById('edges-table').style.display = 'none';
   document.getElementById('table-count').textContent = rows.length + ' 条';
   var sorted = _sortedRows('nodes', rows);
-  var html = sorted.map(n => {
-    var c = _typeColors[n.type] || '#94a3b8';
-    var pr = n.pagerank != null ? parseFloat(n.pagerank).toFixed(4) : '-';
+  _vScroll('nodes-tbody', sorted, function(n) {
     return `<tr style="border-bottom:1px solid #1e293b;" onmouseenter="this.style.background='#1e293b'" onmouseleave="this.style.background=''">`
-      + `<td style="padding:7px 12px;"><span style="color:${c};font-weight:600;">${esc(n.type)}</span></td>`
-      + `<td style="padding:7px 12px;font-weight:500;color:#e2e8f0;">${esc(n.name||'-')}</td>`
-      + `<td style="padding:7px 12px;color:#94a3b8;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(n.description||'')}">${esc(n.description||'-')}</td>`
+      + `<td style="padding:7px 12px;font-weight:600;color:${
+          {'TASK':'#4ade80','SKILL':'#60a5fa','EVENT':'#f472b6'}[n.type]||'#94a3b8'
+        };">${esc(n.type||'-')}</td>`
+      + `<td style="padding:7px 12px;color:#e2e8f0;font-weight:500;">${esc(n.name||'-')}</td>`
+      + `<td style="padding:7px 12px;color:#94a3b8;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(n.description||'')}">${esc(n.description||'-')}</td>`
       + `<td style="padding:7px 12px;color:#64748b;">${esc(n.community_id||'-')}</td>`
-      + `<td style="padding:7px 12px;color:#fbbf24;font-family:monospace;">${pr}</td>`
-      + `<td style="padding:7px 12px;color:#64748b;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(n.content||'')}">${esc(n.content||'-')}</td>`
+      + `<td style="padding:7px 12px;color:#fbbf24;">${n.pagerank ? n.pagerank.toFixed(4) : '-'}</td>`
+      + `<td style="padding:7px 12px;color:#64748b;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(n.content||'')}">${esc((n.content||'').substring(0,80))}</td>`
       + `</tr>`;
-  }).join('');
-  document.getElementById('nodes-tbody').innerHTML = html;
+  });
 }
 
 function renderEdgesTable(rows) {
-  document.getElementById('edges-table').style.display = '';
   document.getElementById('nodes-table').style.display = 'none';
+  document.getElementById('edges-table').style.display = '';
   document.getElementById('table-count').textContent = rows.length + ' 条';
   var sorted = _sortedRows('edges', rows);
-  var html = sorted.map(e => {
+  _vScroll('edges-tbody', sorted, function(e) {
     return `<tr style="border-bottom:1px solid #1e293b;" onmouseenter="this.style.background='#1e293b'" onmouseleave="this.style.background=''">`
       + `<td style="padding:7px 12px;font-weight:600;color:#a78bfa;">${esc(e.type||'-')}</td>`
       + `<td style="padding:7px 12px;color:#60a5fa;">${esc(e.from_name||'-')}</td>`
@@ -807,8 +870,7 @@ function renderEdgesTable(rows) {
       + `<td style="padding:7px 12px;color:#94a3b8;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(e.instruction||'')}">${esc(e.instruction||'-')}</td>`
       + `<td style="padding:7px 12px;color:#64748b;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(e.condition||'')}">${esc(e.condition||'-')}</td>`
       + `</tr>`;
-  }).join('');
-  document.getElementById('edges-tbody').innerHTML = html;
+  });
 }
 
 function esc(s) {
