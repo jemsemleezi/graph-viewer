@@ -1,7 +1,9 @@
 # Graph Viewer — 知识图谱可视化工具
 
 一个基于 vis-network 的本地知识图谱浏览器，用以适配 https://github.com/adoresever/graph-memory 项目的知识图谱管理；
+
 支持 SQLite 数据库和 JSON 文件，提供力导向图可视化、节点/关系增删改查、系统托盘快捷启动等功能；
+
 并非openclaw或者其他agent的插件，只是一个脚本和前端管理器，随用随开，可以放在任何目录。
 
 也支持其他知识图谱管理？可能，我没有测试
