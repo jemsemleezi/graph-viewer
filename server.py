@@ -301,6 +301,21 @@ def delete_edge(edge_id):
             return jsonify({'status': 'frontend_only', 'warning': 'DB被占用，已仅移除前端显示'}), 200
         return jsonify({'error': err}), 500
 
+# ── 修改边（【修复问题4】：补充缺失的关系更新接口） ──
+@app.route('/api/edge/<edge_id>', methods=['PUT'])
+def update_edge(edge_id):
+    if _json_graph is not None:
+        return jsonify({'error': 'JSON模式不支持写操作'}), 403
+    data = request.json or {}
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE gm_edges SET type=?, instruction=?, condition=? WHERE id=?",
+                (data.get('type', 'USED_SKILL'), data.get('instruction', ''), data.get('condition', ''), edge_id)
+            )
+            return jsonify({'status': 'updated'})
+    except sqlite3.OperationalError as e:
+        return jsonify({'error': str(e)}), 500
 
 # ── 统计 ──
 @app.route('/api/stats')
@@ -344,6 +359,51 @@ def get_stats():
     except sqlite3.OperationalError as e:
         return jsonify({'error': str(e)}), 500
 
+# ── 导出为 SQLite 文件 ──
+@app.route('/api/export-sqlite')
+def export_sqlite():
+    import tempfile
+    import shutil
+    from flask import after_this_request, send_file
+    
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix='.db')
+    os.close(tmp_fd)
+    try:
+        if _json_graph is not None:
+            # 如果是 JSON 模式，在内存临时库中建表并写入数据
+            conn = sqlite3.connect(tmp_path)
+            conn.execute('''CREATE TABLE IF NOT EXISTS gm_nodes (
+                id TEXT PRIMARY KEY, type TEXT, name TEXT, description TEXT, 
+                content TEXT, status TEXT DEFAULT 'active', community_id INTEGER, 
+                pagerank REAL, created_at INTEGER, updated_at INTEGER)''')
+            conn.execute('''CREATE TABLE IF NOT EXISTS gm_edges (
+                id TEXT PRIMARY KEY, from_id TEXT, to_id TEXT, type TEXT, 
+                instruction TEXT, condition TEXT, session_id TEXT, created_at INTEGER)''')
+            for n in _json_graph.get('nodes', []):
+                conn.execute("INSERT OR IGNORE INTO gm_nodes (id, type, name, description, content) VALUES (?, ?, ?, ?, ?)",
+                            (n.get('id'), n.get('type'), n.get('name'), n.get('description'), n.get('content')))
+            for e in _json_graph.get('edges', []):
+                conn.execute("INSERT OR IGNORE INTO gm_edges (id, from_id, to_id, type, instruction, condition) VALUES (?, ?, ?, ?, ?, ?)",
+                            (e.get('id'), e.get('from_id'), e.get('to_id'), e.get('type'), e.get('instruction'), e.get('condition')))
+            conn.commit()
+            conn.close()
+        else:
+            # 如果是 SQLite 模式，直接复制原文件
+            shutil.copyfile(_current_db_path, tmp_path)
+            
+        @after_this_request
+        def cleanup(response):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+            return response
+            
+        return send_file(tmp_path, as_attachment=True, download_name='graph_memory_export.db')
+    except Exception as e:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     print(f'Graph Viewer running at http://127.0.0.1:7892')
