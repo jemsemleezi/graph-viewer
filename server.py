@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""Graph Memory Viewer - Flask backend"""
+"""Graph Memory Viewer - Flask backend with safe node deletion (disable FK temporarily)"""
 import sqlite3
 import json
 import os
 import time
 import uuid
-from flask import Flask, jsonify, request, send_from_directory
+import logging
+from flask import Flask, jsonify, request, send_from_directory, after_this_request, send_file
 from flask_cors import CORS
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
-# ── 路径配置（禁止硬编码用户路径，统一用 expanduser）──
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# ── 路径配置 ──
 _CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
 _BUILTIN_DEFAULT = os.path.join(os.path.expanduser('~'), '.openclaw', 'graph-memory.db')
 
@@ -34,16 +38,11 @@ def _save_config(data):
 
 
 DEFAULT_DB_PATH = _load_config().get('default_db_path', _BUILTIN_DEFAULT)
-
-# 当前使用的 DB 路径（可被 /api/switch-db 切换）
-# 注意：全局变量在单线程 Flask dev 模式下安全；生产环境建议改用 threading.local
 _current_db_path = DEFAULT_DB_PATH
-# 内存中的 JSON 图谱数据（当用户上传 JSON 时使用，优先于 SQLite）
-_json_graph = None  # {'nodes': [...], 'edges': [...]}
+_json_graph = None
 
 
 def get_db(path=None):
-    """获取数据库连接，内置重试逻辑应对 DB locked。"""
     p = path or _current_db_path
     for attempt in range(20):
         try:
@@ -60,7 +59,79 @@ def get_db(path=None):
             raise
 
 
-# ── 全局错误处理（保证始终返回 JSON，不返回 HTML 错误页）──
+# ── 升级表结构（统一 TEXT + CASCADE）──
+def upgrade_edges_cascade(db_path):
+    try:
+        with sqlite3.connect(db_path, timeout=30) as conn:
+            conn.execute("PRAGMA foreign_keys = OFF")
+            conn.execute("BEGIN TRANSACTION")
+
+            fk_list = conn.execute("PRAGMA foreign_key_list(gm_edges)").fetchall()
+            need_upgrade = True
+            if fk_list:
+                all_cascade = all(fk[6] == 'CASCADE' for fk in fk_list)
+                if all_cascade:
+                    need_upgrade = False
+
+            if not need_upgrade:
+                logger.info("gm_edges 表已支持 ON DELETE CASCADE，无需升级")
+                conn.execute("COMMIT")
+                conn.execute("PRAGMA foreign_keys = ON")
+                return
+
+            logger.warning("gm_edges 表缺少 ON DELETE CASCADE，开始升级...")
+            conn.execute("ALTER TABLE gm_edges RENAME TO gm_edges_old")
+            conn.execute("""
+                CREATE TABLE gm_edges (
+                    id TEXT PRIMARY KEY,
+                    from_id TEXT,
+                    to_id TEXT,
+                    type TEXT,
+                    instruction TEXT,
+                    condition TEXT,
+                    session_id TEXT,
+                    created_at INTEGER,
+                    FOREIGN KEY (from_id) REFERENCES gm_nodes(id) ON DELETE CASCADE,
+                    FOREIGN KEY (to_id) REFERENCES gm_nodes(id) ON DELETE CASCADE
+                )
+            """)
+            conn.execute("""
+                INSERT INTO gm_edges (id, from_id, to_id, type, instruction, condition, session_id, created_at)
+                SELECT 
+                    id, 
+                    CAST(from_id AS TEXT), 
+                    CAST(to_id AS TEXT), 
+                    type, 
+                    instruction, 
+                    condition, 
+                    session_id, 
+                    created_at
+                FROM gm_edges_old
+            """)
+            conn.execute("DROP TABLE gm_edges_old")
+            conn.execute("COMMIT")
+            conn.execute("PRAGMA foreign_keys = ON")
+            logger.info("升级完成，支持级联删除")
+    except Exception as e:
+        logger.error(f"升级失败: {e}")
+        try:
+            conn.execute("ROLLBACK")
+        except:
+            pass
+        conn.execute("PRAGMA foreign_keys = ON")
+        raise
+
+
+def upgrade_current_db():
+    if _json_graph is not None:
+        return
+    try:
+        upgrade_edges_cascade(_current_db_path)
+    except Exception as e:
+        logger.error(f"升级失败: {e}")
+
+
+# ── 错误处理 ──
 @app.errorhandler(404)
 def not_found(e):
     return jsonify({'error': 'not found', 'code': 404}), 404
@@ -81,7 +152,7 @@ def index():
     return resp
 
 
-# ── 读取图谱数据 ──
+# ── API 路由 ──
 @app.route('/api/graph')
 def get_graph():
     global _json_graph
@@ -96,20 +167,18 @@ def get_graph():
             edges = conn.execute(
                 "SELECT id, from_id, to_id, type, instruction, condition FROM gm_edges"
             ).fetchall()
-        return jsonify({
-            'nodes': [dict(n) for n in nodes],
-            'edges': [dict(e) for e in edges]
-        })
+            return jsonify({
+                'nodes': [dict(n) for n in nodes],
+                'edges': [dict(e) for e in edges]
+            })
     except sqlite3.OperationalError as e:
         return jsonify({'error': str(e)}), 500
 
 
-# ── 切换 SQLite 路径 ──
 @app.route('/api/switch-db', methods=['POST'])
 def switch_db():
     global _current_db_path, _json_graph
     data = request.json or {}
-    # 去除首尾空白及常见 Unicode 方向控制字符（如从文件管理器复制路径时附带的 U+202A 等）
     path = data.get('path', '').strip().strip('\u202a\u202b\u202c\u202d\u202e\u200b\ufeff')
     if not path:
         return jsonify({'error': '路径不能为空'}), 400
@@ -122,15 +191,16 @@ def switch_db():
         return jsonify({'error': f'无法读取图谱数据: {str(e)}'}), 400
     _current_db_path = path
     _json_graph = None
+    upgrade_current_db()
     return jsonify({'status': 'ok', 'path': path})
 
 
-# ── 恢复默认 DB ──
 @app.route('/api/reset-db', methods=['POST'])
 def reset_db():
     global _current_db_path, _json_graph
     _current_db_path = _load_config().get('default_db_path', _BUILTIN_DEFAULT)
     _json_graph = None
+    upgrade_current_db()
     return jsonify({'status': 'ok', 'path': _current_db_path})
 
 
@@ -146,7 +216,6 @@ def set_default_db():
     return jsonify({'status': 'ok', 'path': DEFAULT_DB_PATH})
 
 
-# ── 加载 JSON 图谱 ──
 @app.route('/api/load-json', methods=['POST'])
 def load_json():
     global _json_graph
@@ -161,7 +230,6 @@ def load_json():
     return jsonify({'status': 'ok', 'nodes': len(nodes), 'edges': len(edges)})
 
 
-# ── 当前数据源信息 ──
 @app.route('/api/source')
 def get_source():
     if _json_graph is not None:
@@ -169,13 +237,11 @@ def get_source():
     return jsonify({'mode': 'sqlite', 'path': _current_db_path})
 
 
-# ── 当前 DB 路径 ──
 @app.route('/api/current-db')
 def current_db():
     return jsonify({'path': _current_db_path, 'is_json': _json_graph is not None})
 
 
-# ── 获取单个节点详情 ──
 @app.route('/api/node/<node_id>')
 def get_node(node_id):
     if _json_graph is not None:
@@ -185,17 +251,14 @@ def get_node(node_id):
         return jsonify(node)
     try:
         with get_db() as conn:
-            node = conn.execute(
-                "SELECT * FROM gm_nodes WHERE id=?", (node_id,)
-            ).fetchone()
-        if not node:
-            return jsonify({'error': 'not found'}), 404
-        return jsonify(dict(node))
+            node = conn.execute("SELECT * FROM gm_nodes WHERE id=?", (node_id,)).fetchone()
+            if not node:
+                return jsonify({'error': 'not found'}), 404
+            return jsonify(dict(node))
     except sqlite3.OperationalError as e:
         return jsonify({'error': str(e)}), 500
 
 
-# ── 新增节点 ──
 @app.route('/api/node', methods=['POST'])
 def create_node():
     if _json_graph is not None:
@@ -209,18 +272,14 @@ def create_node():
                 "INSERT INTO gm_nodes "
                 "(id, type, name, description, content, status, source_sessions, pagerank, created_at, updated_at) "
                 "VALUES (?, ?, ?, ?, ?, 'active', '[]', 0, ?, ?)",
-                (node_id, data.get('type', 'SKILL'), data.get('name', ''),
-                 data.get('description', ''), data.get('content', ''), now, now)
+                (node_id, data.get('type', 'SKILL'), data.get('name', ''), data.get('description', ''),
+                 data.get('content', ''), now, now)
             )
-        return jsonify({'id': node_id, 'status': 'created'})
+            return jsonify({'id': node_id, 'status': 'created'})
     except sqlite3.OperationalError as e:
-        err = str(e)
-        if 'locked' in err:
-            return jsonify({'status': 'frontend_only', 'warning': 'DB被占用，已仅记录前端显示'}), 200
-        return jsonify({'error': err}), 500
+        return jsonify({'error': str(e)}), 500
 
 
-# ── 修改节点 ──
 @app.route('/api/node/<node_id>', methods=['PUT'])
 def update_node(node_id):
     if _json_graph is not None:
@@ -231,36 +290,59 @@ def update_node(node_id):
         with get_db() as conn:
             conn.execute(
                 "UPDATE gm_nodes SET name=?, description=?, content=?, type=?, updated_at=? WHERE id=?",
-                (data.get('name'), data.get('description'), data.get('content'),
-                 data.get('type'), now, node_id)
+                (data.get('name'), data.get('description'), data.get('content'), data.get('type'), now, node_id)
             )
-        return jsonify({'status': 'updated'})
+            return jsonify({'status': 'updated'})
     except sqlite3.OperationalError as e:
         return jsonify({'error': str(e)}), 500
 
 
-# ── 删除节点 ──
 @app.route('/api/node/<node_id>', methods=['DELETE'])
 def delete_node(node_id):
     if _json_graph is not None:
         return jsonify({'error': 'JSON模式下不支持写操作'}), 403
     try:
         with get_db() as conn:
-            # 先手动删关联边（foreign_keys=ON 时级联，或手动保证一致性）
-            conn.execute(
-                "DELETE FROM gm_edges WHERE from_id=? OR to_id=?",
+            # 记录当前外键状态
+            fk_status = conn.execute("PRAGMA foreign_keys").fetchone()[0]
+            app.logger.info(f"Deleting node {node_id}, foreign_keys={fk_status}")
+            
+            # 临时禁用外键约束
+            conn.execute("PRAGMA foreign_keys=OFF")
+            
+            # 1. 删除所有关联边（使用 CAST 确保类型匹配）
+            edge_del = conn.execute(
+                "DELETE FROM gm_edges WHERE CAST(from_id AS TEXT) = ? OR CAST(to_id AS TEXT) = ?",
                 (node_id, node_id)
             )
-            conn.execute("DELETE FROM gm_nodes WHERE id=?", (node_id,))
-        return jsonify({'status': 'deleted'})
-    except sqlite3.OperationalError as e:
-        err = str(e)
-        if 'locked' in err:
-            return jsonify({'status': 'frontend_only', 'warning': 'DB被占用，已仅移除前端显示'}), 200
-        return jsonify({'error': err}), 500
+            app.logger.info(f"Deleted {edge_del.rowcount} edges")
+            
+            # 2. 手动清理 FTS 表中的引用（避免触发器报错）
+            try:
+                conn.execute(
+                    "DELETE FROM gm_nodes_fts WHERE rowid IN (SELECT rowid FROM gm_nodes WHERE id = ?)",
+                    (node_id,)
+                )
+            except Exception as e:
+                app.logger.warning(f"FTS cleanup failed: {e}")
+            
+            # 3. 删除节点
+            node_del = conn.execute("DELETE FROM gm_nodes WHERE id = ?", (node_id,))
+            app.logger.info(f"Deleted {node_del.rowcount} nodes")
+            
+            # 重新启用外键约束
+            conn.execute("PRAGMA foreign_keys=ON")
+            
+            if node_del.rowcount == 0:
+                return jsonify({'error': '节点不存在'}), 404
+            
+            return jsonify({'status': 'deleted', 'edges_removed': edge_del.rowcount})
+    except Exception as e:
+        # 确保即使出错也重新启用外键（连接会关闭，但显式处理更好）
+        app.logger.error(f"Delete node failed: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 
-# ── 新增边 ──
 @app.route('/api/edge', methods=['POST'])
 def create_edge():
     if _json_graph is not None:
@@ -274,19 +356,14 @@ def create_edge():
                 "INSERT INTO gm_edges "
                 "(id, from_id, to_id, type, instruction, condition, session_id, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, 'manual', ?)",
-                (edge_id, data['from_id'], data['to_id'],
-                 data.get('type', 'USED_SKILL'), data.get('instruction', ''),
-                 data.get('condition', ''), now)
+                (edge_id, data['from_id'], data['to_id'], data.get('type', 'USED_SKILL'),
+                 data.get('instruction', ''), data.get('condition', ''), now)
             )
-        return jsonify({'id': edge_id, 'status': 'created'})
+            return jsonify({'id': edge_id, 'status': 'created'})
     except sqlite3.OperationalError as e:
-        err = str(e)
-        if 'locked' in err:
-            return jsonify({'status': 'frontend_only', 'warning': 'DB被占用，已仅记录前端显示'}), 200
-        return jsonify({'error': err}), 500
+        return jsonify({'error': str(e)}), 500
 
 
-# ── 删除边 ──
 @app.route('/api/edge/<edge_id>', methods=['DELETE'])
 def delete_edge(edge_id):
     if _json_graph is not None:
@@ -294,14 +371,11 @@ def delete_edge(edge_id):
     try:
         with get_db() as conn:
             conn.execute("DELETE FROM gm_edges WHERE id=?", (edge_id,))
-        return jsonify({'status': 'deleted'})
+            return jsonify({'status': 'deleted'})
     except sqlite3.OperationalError as e:
-        err = str(e)
-        if 'locked' in err:
-            return jsonify({'status': 'frontend_only', 'warning': 'DB被占用，已仅移除前端显示'}), 200
-        return jsonify({'error': err}), 500
+        return jsonify({'error': str(e)}), 500
 
-# ── 修改边（【修复问题4】：补充缺失的关系更新接口） ──
+
 @app.route('/api/edge/<edge_id>', methods=['PUT'])
 def update_edge(edge_id):
     if _json_graph is not None:
@@ -317,7 +391,7 @@ def update_edge(edge_id):
     except sqlite3.OperationalError as e:
         return jsonify({'error': str(e)}), 500
 
-# ── 统计 ──
+
 @app.route('/api/stats')
 def get_stats():
     if _json_graph is not None:
@@ -336,61 +410,64 @@ def get_stats():
         })
     try:
         with get_db() as conn:
-            node_count = conn.execute(
-                "SELECT COUNT(*) FROM gm_nodes WHERE status='active'"
-            ).fetchone()[0]
-            edge_count = conn.execute(
-                "SELECT COUNT(*) FROM gm_edges"
-            ).fetchone()[0]
+            node_count = conn.execute("SELECT COUNT(*) FROM gm_nodes WHERE status='active'").fetchone()[0]
+            edge_count = conn.execute("SELECT COUNT(*) FROM gm_edges").fetchone()[0]
             community_count = conn.execute(
-                "SELECT COUNT(DISTINCT community_id) FROM gm_nodes "
-                "WHERE status='active' AND community_id IS NOT NULL"
+                "SELECT COUNT(DISTINCT community_id) FROM gm_nodes WHERE status='active' AND community_id IS NOT NULL"
             ).fetchone()[0]
             type_dist = conn.execute(
-                "SELECT type, COUNT(*) as cnt FROM gm_nodes "
-                "WHERE status='active' GROUP BY type"
+                "SELECT type, COUNT(*) as cnt FROM gm_nodes WHERE status='active' GROUP BY type"
             ).fetchall()
-        return jsonify({
-            'nodes': node_count,
-            'edges': edge_count,
-            'communities': community_count,
-            'types': {row['type']: row['cnt'] for row in type_dist}
-        })
+            return jsonify({
+                'nodes': node_count,
+                'edges': edge_count,
+                'communities': community_count,
+                'types': {row['type']: row['cnt'] for row in type_dist}
+            })
     except sqlite3.OperationalError as e:
         return jsonify({'error': str(e)}), 500
 
-# ── 导出为 SQLite 文件 ──
+
 @app.route('/api/export-sqlite')
 def export_sqlite():
     import tempfile
     import shutil
-    from flask import after_this_request, send_file
-    
     tmp_fd, tmp_path = tempfile.mkstemp(suffix='.db')
     os.close(tmp_fd)
     try:
         if _json_graph is not None:
-            # 如果是 JSON 模式，在内存临时库中建表并写入数据
             conn = sqlite3.connect(tmp_path)
             conn.execute('''CREATE TABLE IF NOT EXISTS gm_nodes (
-                id TEXT PRIMARY KEY, type TEXT, name TEXT, description TEXT, 
-                content TEXT, status TEXT DEFAULT 'active', community_id INTEGER, 
-                pagerank REAL, created_at INTEGER, updated_at INTEGER)''')
+                id TEXT PRIMARY KEY,
+                type TEXT,
+                name TEXT,
+                description TEXT,
+                content TEXT,
+                status TEXT DEFAULT 'active',
+                community_id INTEGER,
+                pagerank REAL,
+                created_at INTEGER,
+                updated_at INTEGER)''')
             conn.execute('''CREATE TABLE IF NOT EXISTS gm_edges (
-                id TEXT PRIMARY KEY, from_id TEXT, to_id TEXT, type TEXT, 
-                instruction TEXT, condition TEXT, session_id TEXT, created_at INTEGER)''')
+                id TEXT PRIMARY KEY,
+                from_id TEXT,
+                to_id TEXT,
+                type TEXT,
+                instruction TEXT,
+                condition TEXT,
+                session_id TEXT,
+                created_at INTEGER)''')
             for n in _json_graph.get('nodes', []):
                 conn.execute("INSERT OR IGNORE INTO gm_nodes (id, type, name, description, content) VALUES (?, ?, ?, ?, ?)",
-                            (n.get('id'), n.get('type'), n.get('name'), n.get('description'), n.get('content')))
+                             (n.get('id'), n.get('type'), n.get('name'), n.get('description'), n.get('content')))
             for e in _json_graph.get('edges', []):
                 conn.execute("INSERT OR IGNORE INTO gm_edges (id, from_id, to_id, type, instruction, condition) VALUES (?, ?, ?, ?, ?, ?)",
-                            (e.get('id'), e.get('from_id'), e.get('to_id'), e.get('type'), e.get('instruction'), e.get('condition')))
+                             (e.get('id'), e.get('from_id'), e.get('to_id'), e.get('type'), e.get('instruction'), e.get('condition')))
             conn.commit()
             conn.close()
         else:
-            # 如果是 SQLite 模式，直接复制原文件
             shutil.copyfile(_current_db_path, tmp_path)
-            
+
         @after_this_request
         def cleanup(response):
             try:
@@ -398,14 +475,16 @@ def export_sqlite():
             except Exception:
                 pass
             return response
-            
+
         return send_file(tmp_path, as_attachment=True, download_name='graph_memory_export.db')
     except Exception as e:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
         return jsonify({'error': str(e)}), 500
 
+
 if __name__ == '__main__':
+    upgrade_current_db()
     print(f'Graph Viewer running at http://127.0.0.1:7892')
     print(f'Default DB: {DEFAULT_DB_PATH}')
     app.run(host='127.0.0.1', port=7892, debug=False)

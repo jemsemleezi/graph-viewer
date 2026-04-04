@@ -76,12 +76,12 @@ uv run python server.py
 - 搜索框实时过滤节点
 - 按类型筛选（SKILL / TASK / EVENT）
 
-### 节点颜色
+### 节点颜色规范
 | 类型 | 颜色 |
 |------|------|
-| SKILL | 绿色 `#34d399` |
-| TASK | 蓝色 `#60a5fa` |
-| EVENT | 红色 `#f87171` |
+| SKILL | 绿色 (`#34d399`) |
+| TASK | 蓝色 (`#60a5fa`) |
+| EVENT | 红色 (`#f87171`) |
 
 ### 关系颜色
 | 类型 | 颜色 |
@@ -117,6 +117,13 @@ uv run python server.py
 | `/api/node` | POST | 新增节点 |
 | `/api/node/<id>` | PUT | 更新节点 |
 | `/api/node/<id>` | DELETE | 删除节点及关联边 |
+| `/api/edge` | POST | 新增关系边 |
+| `/api/edge/<id>` | DELETE | 删除关系边 |
+| `/api/switch-db` | POST | 切换 SQLite 文件 `{"path": "..."}` |
+| `/api/load-json` | POST | 载入 JSON 图谱并进入内存模式 |
+| `/api/export-sqlite` | GET | 将当前图谱导出为 SQLite 下载 |
+| `/api/reset-db` | POST | 恢复默认数据库 |
+| `/api/set-default-db` | POST | 将当前数据库路径持久化配置 |
 | `/api/edge` | POST | 新增关系边 |
 | `/api/edge/<id>` | DELETE | 删除关系边 |
 | `/api/switch-db` | POST | 切换 SQLite 文件 `{"path": "..."}` |

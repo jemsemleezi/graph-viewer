@@ -498,34 +498,7 @@
     }
     function enableEditNode() { isEditingNode = true; fetch(`/api/node/${currentNodeId}`).then(r=>r.json()).then(renderNodeView); }
     async function saveNode() { const data = { name: document.getElementById('edit-node-name').value, type: document.getElementById('edit-node-type').value, description: document.getElementById('edit-node-desc').value, content: document.getElementById('edit-node-content').value }; const res = await fetch(`/api/node/${currentNodeId}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); if(res.ok) { showToast('保存成功'); showNodeDetail(currentNodeId); await loadGraph(); } else showToast('保存失败', 'error'); }
-    async function deleteNode(id) {
-    // 1. 用户二次确认
-    if (!confirm('确定删除该节点及所有关联关系吗？此操作不可撤销。')) return;
-
-    try {
-        // 2. 发送删除请求
-        const res = await fetch(`/api/node/${id}`, { method: 'DELETE' });
-
-        // 3. 【关键修复】解析后端返回的 JSON 数据
-        // 后端 server.py 已修改为在 500 错误时也返回 JSON，必须解析才能获取错误详情
-        const data = await res.json();
-
-        // 4. 根据响应状态处理结果
-        if (res.ok) {
-            // 删除成功
-            hideDetailPanel();
-            showToast('节点已删除');
-            await loadGraph();
-        } else {
-            // 删除失败：显示后端返回的具体错误信息 (如 "database is locked")
-            showToast(`删除失败: ${data.error}`, 'error');
-        }
-    } catch (e) {
-        // 捕获网络错误或 JSON 解析异常
-        console.error(e);
-        showToast(`请求异常: ${e.message}`, 'error');
-    }
-}
+    async function deleteNode(id) { if (!confirm('确定删除该节点及所有关联关系吗？此操作不可撤销。')) return; const res = await fetch(`/api/node/${id}`, { method: 'DELETE' }); if(res.ok) { hideDetailPanel(); showToast('节点已删除'); await loadGraph(); } else alert(`删除失败: ${data.error}`); }
 
     function showEdgeDetail(id) { currentEdgeId = id; currentNodeId = null; isEditingNode = false; isEditingEdge = false; const edge = edges.get(id); const fromNode = nodes.get(edge.from); const toNode = nodes.get(edge.to); document.getElementById('detail-title').innerText = '关系详情'; renderEdgeView({ id, type: edge.label, from_name: fromNode.label, to_name: toNode.label, instruction: edge.instruction, condition: edge.condition }); openDetailPanel(); }
     function renderEdgeView(data) { const body = document.getElementById('detail-body'); if (!isEditingEdge) { body.innerHTML = `<div class="detail-field"><div class="detail-label">关系类型</div><div class="detail-value" style="color:${edgeColors[data.type]}">${data.type}</div></div><div class="detail-field"><div class="detail-label">起始节点</div><div class="detail-value">${data.from_name}</div></div><div class="detail-field"><div class="detail-label">目标节点</div><div class="detail-value">${data.to_name}</div></div><div class="detail-field"><div class="detail-label">说明 / 指令</div><div class="detail-value">${data.instruction || '-'}</div></div><div class="detail-field"><div class="detail-label">触发条件</div><div class="detail-value">${data.condition || '-'}</div></div>`; document.getElementById('detail-actions').innerHTML = `<button class="btn btn-ghost" onclick="enableEditEdge()">编辑</button><button class="btn btn-danger" onclick="deleteEdge('${data.id}')">删除</button>`; } else { body.innerHTML = `<div class="form-group"><label class="form-label">关系类型</label><select id="edit-edge-type" class="form-select"><option ${data.type==='USED_SKILL'?'selected':''}>USED_SKILL</option><option ${data.type==='SOLVED_BY'?'selected':''}>SOLVED_BY</option><option ${data.type==='REQUIRES'?'selected':''}>REQUIRES</option><option ${data.type==='PATCHES'?'selected':''}>PATCHES</option><option ${data.type==='CONFLICTS_WITH'?'selected':''}>CONFLICTS_WITH</option></select></div><div class="form-group"><label class="form-label">说明</label><textarea id="edit-edge-instruction" class="form-textarea">${data.instruction||''}</textarea></div><div class="form-group"><label class="form-label">条件</label><textarea id="edit-edge-condition" class="form-textarea">${data.condition||''}</textarea></div>`; document.getElementById('detail-actions').innerHTML = `<button class="btn btn-ghost" onclick="showEdgeDetail('${data.id}')">取消</button><button class="btn btn-primary" onclick="saveEdge()">保存</button>`; } }
