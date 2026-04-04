@@ -17,134 +17,734 @@
             --danger: #ff5c5c;
             --success: #34d399;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow: hidden; height: 100vh; font-size: 13px; }
-        
-        .toolbar { height: 50px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 8px; z-index: 10; }
-        .toolbar-logo { font-size: 16px; font-weight: 600; color: var(--accent); margin-right: 16px; white-space: nowrap; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;}
-        .toolbar-divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
-        
-        .tb-btn, .dropdown-wrap > .tb-btn-inner { height: 32px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.2s; }
-        .tb-btn:hover, .dropdown-wrap > .tb-btn-inner:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
-        
-        .dropdown-wrap { position: relative; }
-        .tb-menu { display: none; position: absolute; top: calc(100% + 6px); left: 0; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; min-width: 220px; z-index: 50; box-shadow: 0 10px 25px rgba(0,0,0,0.4); overflow: hidden; }
-        /* 修复导出菜单越界：靠右对齐 */
-        .dropdown-wrap.align-right .tb-menu { left: auto; right: 0; } 
-        .tb-menu.open { display: block; }
-        .tb-menu-item { padding: 10px 14px; cursor: pointer; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); font-size: 12px; }
-        .tb-menu-item:last-child { border-bottom: none; }
-        .tb-menu-item:hover { background: rgba(79, 140, 255, 0.1); }
-        .tb-menu-desc { font-size: 11px; color: var(--text-secondary); text-align: right; max-width: 120px; }
 
-        .main-container { display: flex; height: calc(100vh - 50px); position: relative; }
-        
-        .side-panel { width: 320px; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: width 0.3s ease; overflow: hidden; z-index: 5; flex-shrink: 0; }
-        .side-panel.collapsed { width: 0; border-right: none; }
-        
-        .panel-section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
-        .panel-section-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-        
-        /* 修复搜索框和下拉框不同行 */
-        .filter-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
-        .filter-input { flex: 1; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 12px; outline: none; transition: border-color 0.2s; min-width: 0;}
-        .filter-input:focus { border-color: var(--accent); }
-        .filter-select { width: 120px; flex-shrink: 0; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0 8px; font-size: 12px; height: 34px; outline: none; cursor: pointer; }
-        
-        .tab-row { display: flex; background: var(--bg-primary); border-radius: 6px; padding: 3px; }
-        .tab-btn { flex: 1; padding: 6px; background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 12px; border-radius: 4px; text-align: center; transition: all 0.2s;}
-        .tab-btn.active { background: var(--accent); color: #fff; font-weight: 500; }
-        
-        .panel-content { flex: 1; overflow-y: auto; background: var(--bg-primary); }
-        .list-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s; }
-        .list-item:hover { background: rgba(79, 140, 255, 0.05); }
-        .list-item-title { font-weight: 500; margin-bottom: 2px; }
-        .list-item-sub { font-size: 11px; color: var(--text-secondary); display: flex; gap: 8px; align-items: center; }
-        .list-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .empty-state { padding: 30px 16px; text-align: center; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
-        
-        /* 修复统计版面过大：改用紧凑横排 */
-        .stats-container { display: flex; flex-direction: column; gap: 8px; }
-        .stats-source { font-size: 11px; color: var(--text-secondary); background: var(--bg-primary); border-radius: 4px; padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .stats-row { display: flex; gap: 8px; }
-        .stats-item { flex: 1; background: var(--bg-primary); border-radius: 4px; padding: 8px; text-align: center; }
-        .stats-item-val { font-size: 16px; font-weight: 700; color: var(--accent); }
-        .stats-item-label { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
-        .stats-types { display: flex; flex-wrap: wrap; gap: 4px; }
-        .stats-badge { font-size: 10px; background: var(--bg-primary); padding: 3px 6px; border-radius: 10px; display: flex; align-items: center; gap: 4px; color: var(--text-secondary); }
-        .stats-badge-dot { width: 6px; height: 6px; border-radius: 50%; }
-        .stats-badge-line { width: 10px; height: 2px; border-radius: 1px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        .graph-container { flex: 1; position: relative; background: var(--bg-primary); }
-        #graph-canvas { width: 100%; height: 100%; }
-        
-        .table-view { display: none; flex: 1; overflow: auto; padding: 24px; background: var(--bg-primary); }
-        .table-view.active { display: block; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; background: var(--bg-secondary); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { color: var(--text-secondary); background: var(--bg-tertiary); font-weight: 500; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;}
-        tr:hover td { background: rgba(79, 140, 255, 0.05); cursor: pointer; }
-        .table-title { font-size: 16px; margin-bottom: 16px; color: var(--text-primary); }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            font-size: 13px;
+        }
 
-        .detail-panel { width: 400px; background: var(--bg-secondary); border-left: 1px solid var(--border); position: absolute; right: 0; top: 0; bottom: 0; z-index: 5; transform: translateX(100%); transition: transform 0.3s ease; display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.3); }
-        .detail-panel.open { transform: translateX(0); }
-        .detail-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600; }
-        .detail-body { flex: 1; padding: 20px; overflow-y: auto; }
-        /* 修复编辑界面输入框高度太低 */
-        .detail-body .form-textarea { min-height: 150px; }
-        .detail-field { margin-bottom: 16px; }
-        .detail-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-        .detail-value { font-size: 13px; color: var(--text-primary); line-height: 1.5; white-space: pre-wrap; background: var(--bg-primary); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border);}
-        .detail-actions { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
-        
-        .form-group { margin-bottom: 16px; }
-        .form-label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-secondary); font-weight: 500; }
-        .form-hint { font-size: 11px; color: var(--text-secondary); margin-top: 4px; opacity: 0.8; }
-        .form-input, .form-select, .form-textarea { width: 100%; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 13px; outline: none; transition: border-color 0.2s; font-family: inherit;}
-        .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
-        .form-textarea { min-height: 80px; resize: vertical; }
-        
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: none; justify-content: center; align-items: center; }
-        .modal-overlay.open { display: flex; }
-        .modal { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; width: 520px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 600;}
-        .modal-body { padding: 20px; }
-        .modal-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
-        
-        .btn { padding: 9px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-hover); }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #ff4040; }
-        .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
-        .btn-ghost:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        /* 工具栏样式 */
+        .toolbar {
+            height: 50px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 8px;
+            z-index: 10;
+        }
 
-        .custom-select { position: relative; }
-        .custom-select input { width: 100%; box-sizing: border-box; cursor: text; }
-        .custom-options { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-tertiary); border: 1px solid var(--border); border-top: none; max-height: 150px; overflow-y: auto; z-index: 110; border-radius: 0 0 6px 6px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
-        .custom-option { padding: 10px 12px; cursor: pointer; font-size: 12px; }
-        .custom-option:hover { background: rgba(79, 140, 255, 0.15); }
-        
-        .close-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s; }
-        .close-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .toolbar-logo {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-right: 16px;
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-        .toast-container { position: fixed; top: 60px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .toast { padding: 12px 20px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); font-size: 13px; animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 8px; }
-        .toast.error { border-left: 4px solid var(--danger); }
-        .toast.success { border-left: 4px solid var(--success); }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        .tb-btn, .dropdown-wrap > .tb-btn-inner {
+            height: 32px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0 12px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .tb-btn:hover, .dropdown-wrap > .tb-btn-inner:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        /* 下拉菜单样式 */
+        .dropdown-wrap {
+            position: relative;
+        }
+
+        .tb-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            min-width: 220px;
+            z-index: 50;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        .dropdown-wrap.align-right .tb-menu {
+            left: auto;
+            right: 0;
+        }
+
+        .tb-menu.open {
+            display: block;
+        }
+
+        .tb-menu-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .tb-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .tb-menu-item:hover {
+            background: rgba(79, 140, 255, 0.1);
+        }
+
+        .tb-menu-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: right;
+            max-width: 120px;
+        }
+
+        /* 主体布局 */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 50px);
+            position: relative;
+        }
+
+        /* 侧边栏样式 */
+        .side-panel {
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+            overflow: hidden;
+            z-index: 5;
+            flex-shrink: 0;
+        }
+
+        .side-panel.collapsed {
+            width: 0;
+            border-right: none;
+        }
+
+        .panel-section {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .filter-input {
+            flex: 1;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+            min-width: 0;
+        }
+
+        .filter-input:focus {
+            border-color: var(--accent);
+        }
+
+        .filter-select {
+            width: 120px;
+            flex-shrink: 0;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0 8px;
+            font-size: 12px;
+            height: 34px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .tab-row {
+            display: flex;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            padding: 3px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 6px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 4px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg-primary);
+        }
+
+        .list-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .list-item:hover {
+            background: rgba(79, 140, 255, 0.05);
+        }
+
+        .list-item-title {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .list-item-sub {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .list-item-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .empty-state {
+            padding: 30px 16px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        /* 统计区域样式 */
+        .stats-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .stats-source {
+            font-size: 11px;
+            color: var(--text-secondary);
+            background: var(--bg-primary);
+            border-radius: 4px;
+            padding: 6px 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .stats-item {
+            flex: 1;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .stats-item-val {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stats-item-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .stats-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .stats-badge {
+            font-size: 10px;
+            background: var(--bg-primary);
+            padding: 3px 6px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-secondary);
+        }
+
+        .stats-badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .stats-badge-line {
+            width: 10px;
+            height: 2px;
+            border-radius: 1px;
+        }
+
+        /* 图谱与表格视图 */
+        .graph-container {
+            flex: 1;
+            position: relative;
+            background: var(--bg-primary);
+        }
+
+        #graph-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .table-view {
+            display: none;
+            flex: 1;
+            overflow: auto;
+            padding: 24px;
+            background: var(--bg-primary);
+        }
+
+        .table-view.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover td {
+            background: rgba(79, 140, 255, 0.05);
+            cursor: pointer;
+        }
+
+        .table-title {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        /* 详情面板样式 */
+        .detail-panel {
+            width: 400px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 5;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+        }
+
+        .detail-panel.open {
+            transform: translateX(0);
+        }
+
+        .detail-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .detail-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .detail-body .form-textarea {
+            min-height: 150px;
+        }
+
+        .detail-field {
+            margin-bottom: 16px;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .detail-value {
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.5;
+            white-space: pre-wrap;
+            background: var(--bg-primary);
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .detail-actions {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* 表单与弹窗样式 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .form-hint {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 520px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 9px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff4040;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* 自定义下拉搜索框 */
+        .custom-select {
+            position: relative;
+        }
+
+        .custom-select input {
+            width: 100%;
+            box-sizing: border-box;
+            cursor: text;
+        }
+
+        .custom-options {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-top: none;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 110;
+            border-radius: 0 0 6px 6px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .custom-option {
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .custom-option:hover {
+            background: rgba(79, 140, 255, 0.15);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 18px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* 消息提示框 */
+        .toast-container {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            font-size: 13px;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: pre-line;
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
-
+    <!-- 顶部工具栏 -->
     <div class="toolbar">
         <div class="toolbar-logo">🕸 Memory Graph</div>
-        
         <button class="tb-btn" onclick="refreshGraph()">↻ 刷新</button>
         <button class="tb-btn" id="timer-btn" onclick="toggleTimer()">⏱ 定时: 关</button>
         
@@ -156,6 +756,7 @@
         
         <div class="toolbar-divider"></div>
         
+        <!-- 数据源下拉 -->
         <div class="dropdown-wrap">
             <div class="tb-btn-inner" onclick="this.nextElementSibling.classList.toggle('open')">📂 数据源</div>
             <div class="tb-menu">
@@ -163,7 +764,8 @@
                 <div class="tb-menu-item" onclick="openModal('switch-db-modal')">切换 SQLite <span class="tb-menu-desc">连接数据库</span></div>
             </div>
         </div>
-
+        
+        <!-- 新增下拉 -->
         <div class="dropdown-wrap">
             <div class="tb-btn-inner" onclick="this.nextElementSibling.classList.toggle('open')">➕ 新增</div>
             <div class="tb-menu">
@@ -171,8 +773,8 @@
                 <div class="tb-menu-item" onclick="showAddEdgeModal()">新增关系 <span class="tb-menu-desc">建立关联</span></div>
             </div>
         </div>
-
-        <!-- 添加 align-right 类修复越界 -->
+        
+        <!-- 导出下拉 -->
         <div class="dropdown-wrap align-right" style="margin-left: auto;">
             <div class="tb-btn-inner" onclick="this.nextElementSibling.classList.toggle('open')">💾 导出</div>
             <div class="tb-menu">
@@ -182,11 +784,12 @@
         </div>
     </div>
 
+    <!-- 主体内容区 -->
     <div class="main-container">
+        <!-- 左侧边栏 -->
         <aside class="side-panel" id="side-panel">
             <div class="panel-section">
                 <div class="panel-section-title">🔍 筛选条件</div>
-                <!-- 将搜索框和下拉框放入同一行 -->
                 <div class="filter-row">
                     <input type="text" class="filter-input" placeholder="搜索名称、描述..." id="search-input" oninput="handleSearch(this.value)">
                     <select id="type-filter-panel" class="filter-select" onchange="handleTypeFilter(this.value)"></select>
@@ -210,21 +813,47 @@
             </div>
         </aside>
 
+        <!-- 图谱视图容器 -->
         <div class="graph-container" id="graph-container">
             <div id="graph-canvas"></div>
         </div>
 
+        <!-- 表格视图容器 -->
         <div class="table-view" id="table-view">
             <div id="table-nodes-wrap">
                 <div class="table-title">节点数据</div>
-                <table><thead><tr><th>类型</th><th>名称</th><th>描述</th><th>社区</th><th>权重</th><th>内容</th></tr></thead><tbody id="table-node-body"></tbody></table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>类型</th>
+                            <th>名称</th>
+                            <th>描述</th>
+                            <th>社区</th>
+                            <th>权重</th>
+                            <th>内容</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-node-body"></tbody>
+                </table>
             </div>
             <div id="table-edges-wrap" style="display:none;">
                 <div class="table-title">关系数据</div>
-                <table><thead><tr><th>关系类型</th><th>起始节点</th><th>目标节点</th><th>说明</th><th>触发条件</th></tr></thead><tbody id="table-edge-body"></tbody></table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>关系类型</th>
+                            <th>起始节点</th>
+                            <th>目标节点</th>
+                            <th>说明</th>
+                            <th>触发条件</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-edge-body"></tbody>
+                </table>
             </div>
         </div>
 
+        <!-- 右侧详情面板 -->
         <div class="detail-panel" id="detail-panel">
             <div class="detail-header">
                 <span id="detail-title">数据详情</span>
@@ -235,9 +864,13 @@
         </div>
     </div>
 
+    <!-- 载入 JSON 弹窗 -->
     <div class="modal-overlay" id="load-json-modal">
         <div class="modal">
-            <div class="modal-header"><span>📂 载入 JSON 文件</span><button class="close-btn" onclick="closeModal('load-json-modal')">✕</button></div>
+            <div class="modal-header">
+                <span>📂 载入 JSON 文件</span>
+                <button class="close-btn" onclick="closeModal('load-json-modal')">✕</button>
+            </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">选择文件</label>
@@ -252,9 +885,13 @@
         </div>
     </div>
 
+    <!-- 切换 SQLite 数据库弹窗 -->
     <div class="modal-overlay" id="switch-db-modal">
         <div class="modal">
-            <div class="modal-header"><span>🗄 切换 SQLite 数据库</span><button class="close-btn" onclick="closeModal('switch-db-modal')">✕</button></div>
+            <div class="modal-header">
+                <span>🗄 切换 SQLite 数据库</span>
+                <button class="close-btn" onclick="closeModal('switch-db-modal')">✕</button>
+            </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">数据库绝对路径</label>
@@ -270,18 +907,35 @@
         </div>
     </div>
 
+    <!-- 新增节点弹窗 -->
     <div class="modal-overlay" id="add-node-modal">
         <div class="modal">
-            <div class="modal-header"><span>🆕 新增节点</span><button class="close-btn" onclick="closeModal('add-node-modal')">✕</button></div>
+            <div class="modal-header">
+                <span>🆕 新增节点</span>
+                <button class="close-btn" onclick="closeModal('add-node-modal')">✕</button>
+            </div>
             <div class="modal-body">
-                <div class="form-group"><label class="form-label">名称 *</label><input type="text" id="add-node-name" class="form-input" placeholder="输入节点名称"></div>
+                <div class="form-group">
+                    <label class="form-label">名称 *</label>
+                    <input type="text" id="add-node-name" class="form-input" placeholder="输入节点名称">
+                </div>
                 <div class="form-group">
                     <label class="form-label">类型</label>
-                    <select id="add-node-type" class="form-select"><option value="SKILL">SKILL (技能)</option><option value="TASK">TASK (任务)</option><option value="EVENT">EVENT (事件)</option></select>
+                    <select id="add-node-type" class="form-select">
+                        <option value="SKILL">SKILL (技能)</option>
+                        <option value="TASK">TASK (任务)</option>
+                        <option value="EVENT">EVENT (事件)</option>
+                    </select>
                     <div class="form-hint">不同类型在图谱中会显示为不同的颜色。</div>
                 </div>
-                <div class="form-group"><label class="form-label">描述</label><textarea id="add-node-desc" class="form-textarea" placeholder="简要描述该节点的作用..."></textarea></div>
-                <div class="form-group"><label class="form-label">内容</label><textarea id="add-node-content" class="form-textarea" placeholder="详细的文本内容或代码片段..."></textarea></div>
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <textarea id="add-node-desc" class="form-textarea" placeholder="简要描述该节点的作用..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">内容</label>
+                    <textarea id="add-node-content" class="form-textarea" placeholder="详细的文本内容或代码片段..."></textarea>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closeModal('add-node-modal')">取消</button>
@@ -290,26 +944,45 @@
         </div>
     </div>
 
+    <!-- 新增关系弹窗 -->
     <div class="modal-overlay" id="add-edge-modal">
         <div class="modal">
-            <div class="modal-header"><span>🔗 新增关系</span><button class="close-btn" onclick="closeModal('add-edge-modal')">✕</button></div>
+            <div class="modal-header">
+                <span>🔗 新增关系</span>
+                <button class="close-btn" onclick="closeModal('add-edge-modal')">✕</button>
+            </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">起始节点 *</label>
-                    <div class="custom-select"><input type="text" class="form-input" placeholder="输入名称搜索节点..." id="ci-from" oninput="filterCustomSelect('from', this.value)" onfocus="filterCustomSelect('from', this.value)"><div class="custom-options" id="co-from"></div></div>
+                    <div class="custom-select">
+                        <input type="text" class="form-input" placeholder="输入名称搜索节点..." id="ci-from" oninput="filterCustomSelect('from', this.value)" onfocus="filterCustomSelect('from', this.value)">
+                        <div class="custom-options" id="co-from"></div>
+                    </div>
                     <input type="hidden" id="add-edge-from" value="">
                 </div>
                 <div class="form-group">
                     <label class="form-label">目标节点 *</label>
-                    <div class="custom-select"><input type="text" class="form-input" placeholder="输入名称搜索节点..." id="ci-to" oninput="filterCustomSelect('to', this.value)" onfocus="filterCustomSelect('to', this.value)"><div class="custom-options" id="co-to"></div></div>
+                    <div class="custom-select">
+                        <input type="text" class="form-input" placeholder="输入名称搜索节点..." id="ci-to" oninput="filterCustomSelect('to', this.value)" onfocus="filterCustomSelect('to', this.value)">
+                        <div class="custom-options" id="co-to"></div>
+                    </div>
                     <input type="hidden" id="add-edge-to" value="">
                 </div>
                 <div class="form-group">
                     <label class="form-label">关系类型</label>
-                    <select id="add-edge-type" class="form-select"><option value="USED_SKILL">USED_SKILL (使用技能)</option><option value="SOLVED_BY">SOLVED_BY (被解决)</option><option value="REQUIRES">REQUIRES (依赖于)</option><option value="PATCHES">PATCHES (修补)</option><option value="CONFLICTS_WITH">CONFLICTS_WITH (冲突)</option></select>
+                    <select id="add-edge-type" class="form-select">
+                        <option value="USED_SKILL">USED_SKILL (使用技能)</option>
+                        <option value="SOLVED_BY">SOLVED_BY (被解决)</option>
+                        <option value="REQUIRES">REQUIRES (依赖于)</option>
+                        <option value="PATCHES">PATCHES (修补)</option>
+                        <option value="CONFLICTS_WITH">CONFLICTS_WITH (冲突)</option>
+                    </select>
                     <div class="form-hint">决定了在图谱中连线的颜色和箭头含义。</div>
                 </div>
-                <div class="form-group"><label class="form-label">说明 / 指令</label><textarea id="add-edge-inst" class="form-textarea" placeholder="描述这个关系的作用或具体的执行指令..."></textarea></div>
+                <div class="form-group">
+                    <label class="form-label">说明 / 指令</label>
+                    <textarea id="add-edge-inst" class="form-textarea" placeholder="描述这个关系的作用或具体的执行指令..."></textarea>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closeModal('add-edge-modal')">取消</button>
@@ -318,277 +991,991 @@
         </div>
     </div>
 
+    <!-- 全局消息提示容器 -->
     <div class="toast-container" id="toast-container"></div>
 
-<script>
-    let nodes = new vis.DataSet([]);
-    let edges = new vis.DataSet([]);
-    let network = null;
-    let currentNodeId = null;
-    let currentEdgeId = null;
-    let currentView = 'graph';
-    let currentTab = 'nodes';
-    let filterType = 'ALL';
-    let searchKeyword = '';
-    let timerInterval = null;
-    let isEditingNode = false;
-    let isEditingEdge = false;
-    let fullGraphData = { nodes: [], edges: [] };
-    
-    const nodeColors = { SKILL: '#4f8cff', TASK: '#34d399', EVENT: '#fbbf24' };
-    const edgeColors = { USED_SKILL: '#60a5fa', SOLVED_BY: '#34d399', REQUIRES: '#a78bfa', PATCHES: '#fbbf24', CONFLICTS_WITH: '#f87171' };
-    
-    const typeOptions = {
-        nodes: [{v:'ALL', t:'所有类型'}, {v:'SKILL', t:'仅 技能'}, {v:'TASK', t:'仅 任务'}, {v:'EVENT', t:'仅 事件'}],
-        edges: [{v:'ALL', t:'所有类型'}, {v:'USED_SKILL', t:'仅 使用技能'}, {v:'SOLVED_BY', t:'仅 被解决'}, {v:'REQUIRES', t:'仅 依赖'}, {v:'PATCHES', t:'仅 修补'}, {v:'CONFLICTS_WITH', t:'仅 冲突'}]
-    };
+    <script>
+        // ===================== 全局状态管理 =====================
+        let nodes = new vis.DataSet([]);
+        let edges = new vis.DataSet([]);
+        let network = null;
+        let currentNodeId = null;
+        let currentEdgeId = null;
+        let currentView = 'graph';
+        let currentTab = 'nodes';
+        let filterType = 'ALL';
+        let searchKeyword = '';
+        let timerInterval = null;
+        let isEditingNode = false;
+        let isEditingEdge = false;
+        let fullGraphData = { nodes: [], edges: [] };
 
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.custom-select')) document.querySelectorAll('.custom-options').forEach(el => el.style.display = 'none');
-        if (!e.target.closest('.dropdown-wrap')) document.querySelectorAll('.tb-menu').forEach(el => el.classList.remove('open'));
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-        updateTypeFilterOptions('nodes');
-        initGraph();
-        loadGraph();
-    });
-
-    function initGraph() {
-        const container = document.getElementById('graph-canvas');
-        const data = { nodes, edges };
-        const options = {
-            physics: { enabled: true, solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -100, centralGravity: 0.005, springLength: 120, springConstant: 0.08, damping: 0.85 }, stabilization: { enabled: true, iterations: 100, updateInterval: 15 }, wind: { x: 0, y: 0 } },
-            interaction: { hover: true, tooltipDelay: 200, dragView: true },
-            edges: { arrows: 'to', smooth: { type: 'dynamic' } }
+        // ===================== 配色映射表 =====================
+        const nodeColors = {
+            SKILL: '#4f8cff',
+            TASK: '#34d399',
+            EVENT: '#fbbf24'
         };
-        network = new vis.Network(container, data, options);
-        network.on('click', (params) => {
-            if (params.nodes.length > 0) showNodeDetail(params.nodes[0]);
-            else if (params.edges.length > 0) showEdgeDetail(params.edges[0]);
-            else hideDetailPanel();
+
+        const edgeColors = {
+            USED_SKILL: '#60a5fa',
+            SOLVED_BY: '#34d399',
+            REQUIRES: '#a78bfa',
+            PATCHES: '#fbbf24',
+            CONFLICTS_WITH: '#f87171'
+        };
+
+        const typeOptions = {
+            nodes: [
+                { v: 'ALL', t: '所有类型' },
+                { v: 'SKILL', t: '仅 技能' },
+                { v: 'TASK', t: '仅 任务' },
+                { v: 'EVENT', t: '仅 事件' }
+            ],
+            edges: [
+                { v: 'ALL', t: '所有类型' },
+                { v: 'USED_SKILL', t: '仅 使用技能' },
+                { v: 'SOLVED_BY', t: '仅 被解决' },
+                { v: 'REQUIRES', t: '仅 依赖' },
+                { v: 'PATCHES', t: '仅 修补' },
+                { v: 'CONFLICTS_WITH', t: '仅 冲突' }
+            ]
+        };
+
+        // ===================== 初始化与事件监听 =====================
+        
+        // 防止内存泄漏：页面关闭时清理定时器与网络实例
+        window.addEventListener('beforeunload', () => {
+            if (timerInterval) clearInterval(timerInterval);
+            if (network) network.destroy();
         });
-    }
 
-    function updateTypeFilterOptions(tab) {
-        const select = document.getElementById('type-filter-panel');
-        select.innerHTML = typeOptions[tab].map(opt => `<option value="${opt.v}">${opt.t}</option>`).join('');
-        select.value = 'ALL'; filterType = 'ALL';
-    }
+        // 全局点击事件：关闭下拉菜单和自定义选择器
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.custom-select')) {
+                document.querySelectorAll('.custom-options').forEach(el => el.style.display = 'none');
+            }
+            if (!e.target.closest('.dropdown-wrap')) {
+                document.querySelectorAll('.tb-menu').forEach(el => el.classList.remove('open'));
+            }
+        });
 
-    function switchTab(tab, btn) {
-        currentTab = tab;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('node-list').style.display = tab === 'nodes' ? 'block' : 'none';
-        document.getElementById('edge-list').style.display = tab === 'edges' ? 'block' : 'none';
-        updateTypeFilterOptions(tab);
-        filterLocalData();
-        updateTableViewVisibility();
-    }
+        // DOM 加载完毕后启动
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTypeFilterOptions('nodes');
+            initGraph();
+            loadGraph();
+        });
 
-    function switchView(view) { 
-        currentView = view; 
-        document.getElementById('graph-container').style.display = view === 'graph' ? 'block' : 'none'; 
-        document.getElementById('table-view').classList.toggle('active', view === 'table'); 
-        document.getElementById('to-table-btn').style.display = view === 'table' ? 'none' : 'flex';
-        document.getElementById('back-graph-btn').style.display = view === 'table' ? 'flex' : 'none'; 
-        updateTableViewVisibility();
-    }
+        // ===================== vis-network 核心逻辑 =====================
+        
+        function initGraph() {
+            const container = document.getElementById('graph-canvas');
+            
+            // 重建前销毁旧实例，防止内存泄漏
+            if (network) {
+                network.destroy();
+            }
 
-    function updateTableViewVisibility() {
-        if (currentView !== 'table') return;
-        document.getElementById('table-nodes-wrap').style.display = currentTab === 'nodes' ? 'block' : 'none';
-        document.getElementById('table-edges-wrap').style.display = currentTab === 'edges' ? 'block' : 'none';
-    }
+            const data = { nodes, edges };
+            const options = {
+                physics: {
+                    enabled: true,
+                    solver: 'forceAtlas2Based',
+                    forceAtlas2Based: {
+                        gravitationalConstant: -100,
+                        centralGravity: 0.005,
+                        springLength: 120,
+                        springConstant: 0.08,
+                        damping: 0.85
+                    },
+                    stabilization: {
+                        enabled: true,
+                        iterations: 100,
+                        updateInterval: 15
+                    },
+                    wind: { x: 0, y: 0 }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200,
+                    dragView: true
+                },
+                edges: {
+                    arrows: 'to',
+                    smooth: { type: 'dynamic' }
+                }
+            };
 
-    function hexToRgba(hex, alpha) {
-        if (!hex || hex.startsWith('rgba')) return hex;
-        let r = 0, g = 0, b = 0;
-        if (hex.length === 4) { r = parseInt(hex[1] + hex[1], 16); g = parseInt(hex[2] + hex[2], 16); b = parseInt(hex[3] + hex[3], 16); }
-        else if (hex.length === 7) { r = parseInt(hex.substring(1, 3), 16); g = parseInt(hex.substring(3, 5), 16); b = parseInt(hex.substring(5, 7), 16); }
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
+            network = new vis.Network(container, data, options);
 
-    async function refreshGraph() { showToast('正在重载数据...', 'success'); await loadGraph(); }
+            // 点击节点或边展示详情
+            network.on('click', (params) => {
+                if (params.nodes.length > 0) {
+                    showNodeDetail(params.nodes[0]);
+                } else if (params.edges.length > 0) {
+                    showEdgeDetail(params.edges[0]);
+                } else {
+                    hideDetailPanel();
+                }
+            });
+        }
 
-    async function loadGraph() {
-        try {
-            const res = await fetch('/api/graph'); const data = await res.json();
-            fullGraphData = data;
-            const formattedNodes = data.nodes.map(n => ({ id: n.id, label: n.name || n.id, title: `<b>${n.name}</b><br>Type: ${n.type}<br>${n.description || ''}`, color: { background: nodeColors[n.type] || '#6b7280', border: nodeColors[n.type] || '#6b7280', highlight: { background: '#60a5fa', border: '#60a5fa' } }, font: { color: '#ffffff' }, shape: 'dot', size: 15 + (n.pagerank || 0) * 50, _rawType: n.type }));
-            const formattedEdges = data.edges.map(e => ({ id: e.id, from: e.from_id, to: e.to_id, label: e.type, arrows: 'to', width: 1.5, selectionWidth: 5, hoverWidth: 3, smooth: { type: 'dynamic' }, color: { color: edgeColors[e.type] || '#4b5563', highlight: '#3b82f6' }, font: { color: '#a2a5b9', strokeWidth: 0, size: 10 }, instruction: e.instruction, condition: e.condition, _rawType: e.type }));
-            nodes.clear(); edges.clear(); nodes.add(formattedNodes); edges.add(formattedEdges);
-            network.stabilize(100);
+        async function loadGraph() {
+            // 记录当前视图状态，防止刷新后视角重置跳回原点
+            let viewPosition = null;
+            let viewScale = 1;
+            if (network) {
+                try {
+                    viewPosition = network.getViewPosition();
+                    viewScale = network.getScale();
+                } catch(e) {}
+            }
+
+            try {
+                const res = await fetch('/api/graph');
+                const data = await res.json();
+                fullGraphData = data;
+
+                // 格式化节点数据，初始化 hidden 属性以配合高性能过滤
+                const formattedNodes = data.nodes.map(n => ({
+                    id: n.id,
+                    label: n.name || n.id,
+                    title: `<b>${n.name}</b><br>Type: ${n.type}<br>${n.description || ''}`,
+                    color: {
+                        background: nodeColors[n.type] || '#6b7280',
+                        border: nodeColors[n.type] || '#6b7280',
+                        highlight: { background: '#60a5fa', border: '#60a5fa' }
+                    },
+                    font: { color: '#ffffff' },
+                    shape: 'dot',
+                    size: Math.max(10, 15 + (n.pagerank || 0) * 50),
+                    hidden: false,
+                    _rawType: n.type
+                }));
+
+                // 格式化边数据
+                const formattedEdges = data.edges.map(e => ({
+                    id: e.id,
+                    from: e.from_id,
+                    to: e.to_id,
+                    label: e.type,
+                    arrows: 'to',
+                    width: 1.5,
+                    selectionWidth: 5,
+                    hoverWidth: 3,
+                    smooth: { type: 'dynamic' },
+                    color: {
+                        color: edgeColors[e.type] || '#4b5563',
+                        highlight: '#3b82f6'
+                    },
+                    font: { color: '#a2a5b9', strokeWidth: 0, size: 10 },
+                    instruction: e.instruction,
+                    condition: e.condition,
+                    hidden: false,
+                    _rawType: e.type
+                }));
+
+                nodes.clear();
+                edges.clear();
+                nodes.add(formattedNodes);
+                edges.add(formattedEdges);
+                network.stabilize(100);
+
+                // 数据刷新完毕后瞬间恢复视角，无感知刷新
+                if (viewPosition && viewScale) {
+                    network.moveTo({
+                        position: viewPosition,
+                        scale: viewScale,
+                        animation: false
+                    });
+                }
+
+                filterLocalData();
+                await loadStats();
+            } catch (e) {
+                showToast('加载数据失败: ' + e.message, 'error');
+            }
+        }
+
+        // ===================== 筛选与搜索逻辑 =====================
+        
+        function filterLocalData() {
+            const kw = searchKeyword.toLowerCase();
+            let kwNodes = fullGraphData.nodes;
+            let kwEdges = fullGraphData.edges;
+
+            // 关键字过滤
+            if (kw) {
+                kwNodes = kwNodes.filter(n =>
+                    (n.name && n.name.toLowerCase().includes(kw)) ||
+                    (n.description && n.description.toLowerCase().includes(kw)) ||
+                    (n.content && n.content.toLowerCase().includes(kw))
+                );
+
+                const nodeMap = {};
+                fullGraphData.nodes.forEach(n => nodeMap[n.id] = n.name);
+                
+                kwEdges = kwEdges.filter(e =>
+                    (e.type && e.type.toLowerCase().includes(kw)) ||
+                    (e.instruction && e.instruction.toLowerCase().includes(kw)) ||
+                    (e.condition && e.condition.toLowerCase().includes(kw)) ||
+                    (nodeMap[e.from_id] && nodeMap[e.from_id].toLowerCase().includes(kw)) ||
+                    (nodeMap[e.to_id] && nodeMap[e.to_id].toLowerCase().includes(kw))
+                );
+            }
+
+            let listNodes = kwNodes;
+            let listEdges = kwEdges;
+
+            // 类型过滤
+            if (currentTab === 'nodes') {
+                if (filterType !== 'ALL') {
+                    listNodes = listNodes.filter(n => n.type === filterType);
+                }
+            } else {
+                if (filterType !== 'ALL') {
+                    listEdges = listEdges.filter(e => e.type === filterType);
+                }
+            }
+
+            const nodeMap = {};
+            fullGraphData.nodes.forEach(n => nodeMap[n.id] = n.name);
+
+            renderLists(listNodes, listEdges, nodeMap);
+            renderTables(listNodes, listEdges, nodeMap);
+
+            const validNodeIds = new Set(kwNodes.map(n => n.id));
+            const validEdgeIds = new Set(kwEdges.map(e => e.id));
+
+            // 利用原生 hidden 替代透明度修改，解决万级节点过滤卡顿问题
+            nodes.update(fullGraphData.nodes.map(n => ({
+                id: n.id,
+                hidden: !validNodeIds.has(n.id)
+            })));
+            
+            edges.update(fullGraphData.edges.map(e => ({
+                id: e.id,
+                hidden: !validEdgeIds.has(e.id)
+            })));
+        }
+
+        // ===================== 列表与表格渲染 =====================
+        
+        function renderLists(fNodes, fEdges, nodeMap) {
+            document.getElementById('node-list').innerHTML = fNodes.length 
+                ? fNodes.map(n => `
+                    <div class="list-item" onclick="focusNode('${n.id}')">
+                        <div class="list-item-title">${n.name}</div>
+                        <div class="list-item-sub">
+                            <div class="list-item-dot" style="background:${nodeColors[n.type]}"></div>
+                            ${n.type}${n.description ? ' · ' + n.description : ''}
+                        </div>
+                    </div>
+                `).join('') 
+                : '<div class="empty-state">未找到匹配的节点<br>尝试修改上方的筛选条件</div>';
+
+            document.getElementById('edge-list').innerHTML = fEdges.length 
+                ? fEdges.map(e => `
+                    <div class="list-item" onclick="focusEdge('${e.id}')">
+                        <div class="list-item-title">${nodeMap[e.from_id] || e.from_id} → ${nodeMap[e.to_id] || e.to_id}</div>
+                        <div class="list-item-sub">
+                            <div class="list-item-dot" style="background:${edgeColors[e.type]}"></div>
+                            ${e.type}
+                        </div>
+                    </div>
+                `).join('') 
+                : '<div class="empty-state">未找到匹配的关系<br>尝试修改上方的筛选条件</div>';
+        }
+
+        function renderTables(fNodes, fEdges, nodeMap) {
+            document.getElementById('table-node-body').innerHTML = fNodes.map(n => `
+                <tr onclick="showNodeDetail('${n.id}')">
+                    <td>${n.type}</td>
+                    <td>${n.name}</td>
+                    <td>${n.description || '-'}</td>
+                    <td>${n.community_id || '-'}</td>
+                    <td>${n.pagerank ? n.pagerank.toFixed(4) : '-'}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${n.content || ''}">${n.content || '-'}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('table-edge-body').innerHTML = fEdges.map(e => `
+                <tr onclick="showEdgeDetail('${e.id}')">
+                    <td>${e.type}</td>
+                    <td>${nodeMap[e.from_id] || e.from_id}</td>
+                    <td>${nodeMap[e.to_id] || e.to_id}</td>
+                    <td>${e.instruction || '-'}</td>
+                    <td>${e.condition || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ===================== 节点详情与编辑 =====================
+        
+        function showNodeDetail(id) {
+            currentNodeId = id;
+            currentEdgeId = null;
+            isEditingNode = false;
+            isEditingEdge = false;
+            
+            fetch(`/api/node/${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('detail-title').innerText = '节点详情';
+                    renderNodeView(data);
+                    openDetailPanel();
+                });
+        }
+
+        function renderNodeView(data) {
+            const body = document.getElementById('detail-body');
+            if (!isEditingNode) {
+                body.innerHTML = `
+                    <div class="detail-field">
+                        <div class="detail-label">名称</div>
+                        <div class="detail-value">${data.name || '-'}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">类型</div>
+                        <div class="detail-value" style="color:${nodeColors[data.type]}">${data.type || '-'}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">描述</div>
+                        <div class="detail-value">${data.description || '-'}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">内容</div>
+                        <div class="detail-value">${data.content || '-'}</div>
+                    </div>
+                `;
+                document.getElementById('detail-actions').innerHTML = `
+                    <button class="btn btn-ghost" onclick="enableEditNode()">编辑</button>
+                    <button class="btn btn-danger" onclick="deleteNode('${data.id}')">删除</button>
+                `;
+            } else {
+                body.innerHTML = `
+                    <div class="form-group">
+                        <label class="form-label">名称</label>
+                        <input id="edit-node-name" class="form-input" value="${data.name || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">类型</label>
+                        <select id="edit-node-type" class="form-select">
+                            <option ${data.type === 'SKILL' ? 'selected' : ''}>SKILL</option>
+                            <option ${data.type === 'TASK' ? 'selected' : ''}>TASK</option>
+                            <option ${data.type === 'EVENT' ? 'selected' : ''}>EVENT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <textarea id="edit-node-desc" class="form-textarea" style="min-height: 120px;">${data.description || ''}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">内容</label>
+                        <textarea id="edit-node-content" class="form-textarea" style="min-height: 220px; resize: vertical;">${data.content || ''}</textarea>
+                    </div>
+                `;
+                document.getElementById('detail-actions').innerHTML = `
+                    <button class="btn btn-ghost" onclick="showNodeDetail('${data.id}')">取消</button>
+                    <button class="btn btn-primary" onclick="saveNode()">保存</button>
+                `;
+            }
+        }
+
+        function enableEditNode() {
+            isEditingNode = true;
+            fetch(`/api/node/${currentNodeId}`)
+                .then(r => r.json())
+                .then(renderNodeView);
+        }
+
+        async function saveNode() {
+            const data = {
+                name: document.getElementById('edit-node-name').value,
+                type: document.getElementById('edit-node-type').value,
+                description: document.getElementById('edit-node-desc').value,
+                content: document.getElementById('edit-node-content').value
+            };
+            
+            const res = await fetch(`/api/node/${currentNodeId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                showToast('保存成功');
+                showNodeDetail(currentNodeId);
+                await loadGraph();
+            } else {
+                const err = await res.json();
+                handleApiError(err, '保存失败');
+            }
+        }
+
+        async function deleteNode(id) {
+            if (!confirm('确定删除该节点及所有关联关系吗？此操作不可撤销。')) return;
+
+            try {
+                const res = await fetch(`/api/node/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    hideDetailPanel();
+                    showToast('节点已删除');
+                    await loadGraph();
+                } else {
+                    handleApiError(data, '删除失败');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast(`请求异常: ${e.message}`, 'error');
+            }
+        }
+
+        // ===================== 关系详情与编辑 =====================
+        
+        function showEdgeDetail(id) {
+            currentEdgeId = id;
+            currentNodeId = null;
+            isEditingNode = false;
+            isEditingEdge = false;
+
+            const edge = edges.get(id);
+            const fromNode = nodes.get(edge.from);
+            const toNode = nodes.get(edge.to);
+
+            document.getElementById('detail-title').innerText = '关系详情';
+            renderEdgeView({
+                id,
+                type: edge.label,
+                from_name: fromNode.label,
+                to_name: toNode.label,
+                instruction: edge.instruction,
+                condition: edge.condition
+            });
+            openDetailPanel();
+        }
+
+        function renderEdgeView(data) {
+            const body = document.getElementById('detail-body');
+            if (!isEditingEdge) {
+                body.innerHTML = `
+                    <div class="detail-field">
+                        <div class="detail-label">关系类型</div>
+                        <div class="detail-value" style="color:${edgeColors[data.type]}">${data.type}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">起始节点</div>
+                        <div class="detail-value">${data.from_name}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">目标节点</div>
+                        <div class="detail-value">${data.to_name}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">说明 / 指令</div>
+                        <div class="detail-value">${data.instruction || '-'}</div>
+                    </div>
+                    <div class="detail-field">
+                        <div class="detail-label">触发条件</div>
+                        <div class="detail-value">${data.condition || '-'}</div>
+                    </div>
+                `;
+                document.getElementById('detail-actions').innerHTML = `
+                    <button class="btn btn-ghost" onclick="enableEditEdge()">编辑</button>
+                    <button class="btn btn-danger" onclick="deleteEdge('${data.id}')">删除</button>
+                `;
+            } else {
+                body.innerHTML = `
+                    <div class="form-group">
+                        <label class="form-label">关系类型</label>
+                        <select id="edit-edge-type" class="form-select">
+                            <option ${data.type === 'USED_SKILL' ? 'selected' : ''}>USED_SKILL</option>
+                            <option ${data.type === 'SOLVED_BY' ? 'selected' : ''}>SOLVED_BY</option>
+                            <option ${data.type === 'REQUIRES' ? 'selected' : ''}>REQUIRES</option>
+                            <option ${data.type === 'PATCHES' ? 'selected' : ''}>PATCHES</option>
+                            <option ${data.type === 'CONFLICTS_WITH' ? 'selected' : ''}>CONFLICTS_WITH</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">说明</label>
+                        <textarea id="edit-edge-instruction" class="form-textarea">${data.instruction || ''}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">条件</label>
+                        <textarea id="edit-edge-condition" class="form-textarea">${data.condition || ''}</textarea>
+                    </div>
+                `;
+                document.getElementById('detail-actions').innerHTML = `
+                    <button class="btn btn-ghost" onclick="showEdgeDetail('${data.id}')">取消</button>
+                    <button class="btn btn-primary" onclick="saveEdge()">保存</button>
+                `;
+            }
+        }
+
+        function enableEditEdge() {
+            isEditingEdge = true;
+            const edge = edges.get(currentEdgeId);
+            const fN = nodes.get(edge.from);
+            const tN = nodes.get(edge.to);
+            
+            renderEdgeView({
+                id: currentEdgeId,
+                type: edge.label,
+                from_name: fN.label,
+                to_name: tN.label,
+                instruction: edge.instruction,
+                condition: edge.condition
+            });
+        }
+
+        async function saveEdge() {
+            const data = {
+                type: document.getElementById('edit-edge-type').value,
+                instruction: document.getElementById('edit-edge-instruction').value,
+                condition: document.getElementById('edit-edge-condition').value
+            };
+
+            const res = await fetch(`/api/edge/${currentEdgeId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                showToast('保存成功');
+                showEdgeDetail(currentEdgeId);
+                await loadGraph();
+            } else {
+                const err = await res.json();
+                handleApiError(err, '保存失败');
+            }
+        }
+
+        async function deleteEdge(id) {
+            if (!confirm('确定删除该关系吗？')) return;
+
+            const res = await fetch(`/api/edge/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                hideDetailPanel();
+                showToast('关系已删除');
+                await loadGraph();
+            } else {
+                const err = await res.json();
+                handleApiError(err, '删除失败');
+            }
+        }
+
+        // ===================== UI 交互控制 =====================
+        
+        function openDetailPanel() {
+            document.getElementById('detail-panel').classList.add('open');
+        }
+
+        function hideDetailPanel() {
+            document.getElementById('detail-panel').classList.remove('open');
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+        }
+
+        function togglePanel() {
+            document.getElementById('side-panel').classList.toggle('collapsed');
+        }
+
+        function switchTab(tab, btn) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            document.getElementById('node-list').style.display = tab === 'nodes' ? 'block' : 'none';
+            document.getElementById('edge-list').style.display = tab === 'edges' ? 'block' : 'none';
+            
+            updateTypeFilterOptions(tab);
             filterLocalData();
-            await loadStats();
-        } catch (e) { showToast('加载数据失败: ' + e.message, 'error'); }
-    }
+            updateTableViewVisibility();
+        }
 
-    async function loadStats() {
-        try {
-            const [statsRes, sourceRes, dbRes] = await Promise.all([fetch('/api/stats'), fetch('/api/source'), fetch('/api/current-db')]);
-            const stats = await statsRes.json(); const source = await sourceRes.json(); const db = await dbRes.json();
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('graph-container').style.display = view === 'graph' ? 'block' : 'none';
+            document.getElementById('table-view').classList.toggle('active', view === 'table');
+            document.getElementById('to-table-btn').style.display = view === 'table' ? 'none' : 'flex';
+            document.getElementById('back-graph-btn').style.display = view === 'table' ? 'flex' : 'none';
             
-            let html = '';
-            let sourceText = source.mode === 'json' ? 'JSON (内存模式)' : `SQLite (.../${db.path.replace(/\\/g, '/').split('/').slice(-2).join('/')})`;
-            html += `<div class="stats-source" title="当前连接的数据源">🔗 ${sourceText}</div>`;
-            
-            html += `<div class="stats-row">
+            updateTableViewVisibility();
+        }
+
+        function updateTableViewVisibility() {
+            if (currentView !== 'table') return;
+            document.getElementById('table-nodes-wrap').style.display = currentTab === 'nodes' ? 'block' : 'none';
+            document.getElementById('table-edges-wrap').style.display = currentTab === 'edges' ? 'block' : 'none';
+        }
+
+        function updateTypeFilterOptions(tab) {
+            const select = document.getElementById('type-filter-panel');
+            select.innerHTML = typeOptions[tab].map(opt => `<option value="${opt.v}">${opt.t}</option>`).join('');
+            select.value = 'ALL';
+            filterType = 'ALL';
+        }
+
+        function handleTypeFilter(val) {
+            filterType = val;
+            filterLocalData();
+        }
+
+        let searchTimeout;
+        function handleSearch(val) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchKeyword = val;
+                filterLocalData();
+            }, 300);
+        }
+
+        function focusNode(id) {
+            network.focus(id, { scale: 1.5, animation: true });
+            network.selectNodes([id]);
+            showNodeDetail(id);
+        }
+
+        function focusEdge(id) {
+            const edge = edges.get(id);
+            if (edge && edge.from) {
+                network.focus(edge.from, { scale: 1.5, animation: true });
+            }
+            network.selectEdges([id]);
+            showEdgeDetail(id);
+        }
+
+        function toggleTimer() {
+            const btn = document.getElementById('timer-btn');
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                btn.innerText = '⏱ 定时: 关';
+            } else {
+                timerInterval = setInterval(refreshGraph, 10000);
+                btn.innerText = '⏱ 定时: 开';
+                showToast('已开启 10秒 自动刷新', 'success');
+            }
+        }
+
+        async function refreshGraph() {
+            showToast('正在重载数据...', 'success');
+            await loadGraph();
+        }
+
+        // ===================== 统计信息加载 =====================
+        
+        async function loadStats() {
+            try {
+                const [statsRes, sourceRes, dbRes] = await Promise.all([
+                    fetch('/api/stats'),
+                    fetch('/api/source'),
+                    fetch('/api/current-db')
+                ]);
+                
+                const stats = await statsRes.json();
+                const source = await sourceRes.json();
+                const db = await dbRes.json();
+
+                let html = '';
+                let sourceText = source.mode === 'json' 
+                    ? 'JSON (内存模式)' 
+                    : `SQLite (.../${db.path.replace(/\\/g, '/').split('/').slice(-2).join('/')})`;
+                
+                html += `<div class="stats-source" title="当前连接的数据源">🔗 ${sourceText}</div>`;
+                html += `
+                    <div class="stats-row">
                         <div class="stats-item"><div class="stats-item-val">${stats.nodes}</div><div class="stats-item-label">节点总数</div></div>
                         <div class="stats-item"><div class="stats-item-val">${stats.edges}</div><div class="stats-item-label">关系总数</div></div>
                         <div class="stats-item"><div class="stats-item-val">${stats.communities || 0}</div><div class="stats-item-label">社区数量</div></div>
-                     </div>`;
-            
-            let badges = '';
-            if (stats.types && Object.keys(stats.types).length > 0) {
-                for (const [type, count] of Object.entries(stats.types)) { badges += `<div class="stats-badge"><div class="stats-badge-dot" style="background:${nodeColors[type]}"></div>${type}: ${count}</div>`; }
+                    </div>
+                `;
+
+                let badges = '';
+                if (stats.types && Object.keys(stats.types).length > 0) {
+                    for (const [type, count] of Object.entries(stats.types)) {
+                        badges += `<div class="stats-badge"><div class="stats-badge-dot" style="background:${nodeColors[type]}"></div>${type}: ${count}</div>`;
+                    }
+                }
+                
+                const edgeTypes = {};
+                fullGraphData.edges.forEach(e => {
+                    edgeTypes[e.type] = (edgeTypes[e.type] || 0) + 1;
+                });
+                
+                for (const [type, count] of Object.entries(edgeTypes)) {
+                    badges += `<div class="stats-badge"><div class="stats-badge-line" style="background:${edgeColors[type]}"></div>${type}: ${count}</div>`;
+                }
+                
+                if (badges) html += `<div class="stats-types">${badges}</div>`;
+                
+                document.getElementById('stats-container').innerHTML = html;
+            } catch (e) {
+                document.getElementById('stats-container').innerHTML = '<div class="empty-state">获取统计信息失败</div>';
             }
-            const edgeTypes = {}; fullGraphData.edges.forEach(e => { edgeTypes[e.type] = (edgeTypes[e.type] || 0) + 1; });
-            for (const [type, count] of Object.entries(edgeTypes)) { badges += `<div class="stats-badge"><div class="stats-badge-line" style="background:${edgeColors[type]}"></div>${type}: ${count}</div>`; }
-            if(badges) html += `<div class="stats-types">${badges}</div>`;
-            
-            document.getElementById('stats-container').innerHTML = html;
-        } catch (e) { document.getElementById('stats-container').innerHTML = '<div class="empty-state">获取统计信息失败</div>'; }
-    }
-
-    function filterLocalData() {
-        const kw = searchKeyword.toLowerCase();
-        let kwNodes = fullGraphData.nodes; let kwEdges = fullGraphData.edges;
-        if (kw) {
-            kwNodes = kwNodes.filter(n => (n.name && n.name.toLowerCase().includes(kw)) || (n.description && n.description.toLowerCase().includes(kw)) || (n.content && n.content.toLowerCase().includes(kw)));
-            const nodeMap = {}; fullGraphData.nodes.forEach(n => nodeMap[n.id] = n.name);
-            kwEdges = kwEdges.filter(e => (e.type && e.type.toLowerCase().includes(kw)) || (e.instruction && e.instruction.toLowerCase().includes(kw)) || (e.condition && e.condition.toLowerCase().includes(kw)) || (nodeMap[e.from_id] && nodeMap[e.from_id].toLowerCase().includes(kw)) || (nodeMap[e.to_id] && nodeMap[e.to_id].toLowerCase().includes(kw)));
         }
-        let listNodes = kwNodes; let listEdges = kwEdges;
-        if (currentTab === 'nodes') { if (filterType !== 'ALL') listNodes = listNodes.filter(n => n.type === filterType); }
-        else { if (filterType !== 'ALL') listEdges = listEdges.filter(e => e.type === filterType); }
-        const nodeMap = {}; fullGraphData.nodes.forEach(n => nodeMap[n.id] = n.name);
-        renderLists(listNodes, listEdges, nodeMap); renderTables(listNodes, listEdges, nodeMap);
+
+        // ===================== 数据源管理 =====================
         
-        const validNodeIds = new Set(kwNodes.map(n => n.id)); const validEdgeIds = new Set(kwEdges.map(e => e.id));
-        nodes.update(fullGraphData.nodes.map(n => { const isValid = validNodeIds.has(n.id); const baseColor = nodeColors[n.type] || '#6b7280'; return { id: n.id, color: { background: isValid ? baseColor : hexToRgba(baseColor, 0.15), border: isValid ? baseColor : hexToRgba(baseColor, 0.15), highlight: { background: '#60a5fa', border: '#60a5fa' } }, font: { color: isValid ? '#ffffff' : 'rgba(255,255,255,0.1)' } }; }));
-        edges.update(fullGraphData.edges.map(e => { const isValid = validEdgeIds.has(e.id); const baseColor = edgeColors[e.type] || '#4b5563'; return { id: e.id, color: { color: isValid ? baseColor : hexToRgba(baseColor, 0.05), highlight: isValid ? '#3b82f6' : hexToRgba(baseColor, 0.05) }, font: { color: isValid ? '#a2a5b9' : 'rgba(162, 165, 185, 0.05)', strokeWidth: 0 } }; }));
-    }
+        async function loadJsonFile() {
+            const file = document.getElementById('json-file-input').files[0];
+            if (!file) return showToast('请先选择一个 JSON 文件', 'error');
 
-    function renderLists(fNodes, fEdges, nodeMap) {
-        document.getElementById('node-list').innerHTML = fNodes.length ? fNodes.map(n => `<div class="list-item" onclick="focusNode('${n.id}')"><div class="list-item-title">${n.name}</div><div class="list-item-sub"><div class="list-item-dot" style="background:${nodeColors[n.type]}"></div>${n.type}${n.description ? ' · '+n.description : ''}</div></div>`).join('') : '<div class="empty-state">未找到匹配的节点<br>尝试修改上方的筛选条件</div>';
-        document.getElementById('edge-list').innerHTML = fEdges.length ? fEdges.map(e => `<div class="list-item" onclick="focusEdge('${e.id}')"><div class="list-item-title">${nodeMap[e.from_id] || e.from_id} → ${nodeMap[e.to_id] || e.to_id}</div><div class="list-item-sub"><div class="list-item-dot" style="background:${edgeColors[e.type]}"></div>${e.type}</div></div>`).join('') : '<div class="empty-state">未找到匹配的关系<br>尝试修改上方的筛选条件</div>';
-    }
+            const text = await file.text();
+            try {
+                const data = JSON.parse(text);
+                const res = await fetch('/api/load-json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
 
-    function renderTables(fNodes, fEdges, nodeMap) {
-        document.getElementById('table-node-body').innerHTML = fNodes.map(n => `<tr onclick="showNodeDetail('${n.id}')"><td>${n.type}</td><td>${n.name}</td><td>${n.description || '-'}</td><td>${n.community_id || '-'}</td><td>${n.pagerank ? n.pagerank.toFixed(4) : '-'}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${n.content||''}">${n.content || '-'}</td></tr>`).join('');
-        document.getElementById('table-edge-body').innerHTML = fEdges.map(e => `<tr onclick="showEdgeDetail('${e.id}')"><td>${e.type}</td><td>${nodeMap[e.from_id] || e.from_id}</td><td>${nodeMap[e.to_id] || e.to_id}</td><td>${e.instruction || '-'}</td><td>${e.condition || '-'}</td></tr>`).join('');
-    }
-
-    function showNodeDetail(id) { currentNodeId = id; currentEdgeId = null; isEditingNode = false; isEditingEdge = false; fetch(`/api/node/${id}`).then(r=>r.json()).then(data => { document.getElementById('detail-title').innerText = '节点详情'; renderNodeView(data); openDetailPanel(); }); }
-    function renderNodeView(data) { 
-        const body = document.getElementById('detail-body'); 
-        if (!isEditingNode) { 
-            body.innerHTML = `<div class="detail-field"><div class="detail-label">名称</div><div class="detail-value">${data.name || '-'}</div></div><div class="detail-field"><div class="detail-label">类型</div><div class="detail-value" style="color:${nodeColors[data.type]}">${data.type || '-'}</div></div><div class="detail-field"><div class="detail-label">描述</div><div class="detail-value">${data.description || '-'}</div></div><div class="detail-field"><div class="detail-label">内容</div><div class="detail-value">${data.content || '-'}</div></div>`; 
-            document.getElementById('detail-actions').innerHTML = `<button class="btn btn-ghost" onclick="enableEditNode()">编辑</button><button class="btn btn-danger" onclick="deleteNode('${data.id}')">删除</button>`; 
-        } else { 
-            body.innerHTML = `
-                <div class="form-group"><label class="form-label">名称</label><input id="edit-node-name" class="form-input" value="${data.name || ''}"></div>
-                <div class="form-group"><label class="form-label">类型</label><select id="edit-node-type" class="form-select"><option ${data.type==='SKILL'?'selected':''}>SKILL</option><option${data.type==='TASK'?'selected':''}>TASK</option><option ${data.type==='EVENT'?'selected':''}>EVENT</option></select></div>
-                <div class="form-group"><label class="form-label">描述</label><textarea id="edit-node-desc" class="form-textarea" style="min-height: 120px;">${data.description || ''}</textarea></div>
-                <div class="form-group"><label class="form-label">内容</label><textarea id="edit-node-content" class="form-textarea" style="min-height: 220px; resize: vertical;">${data.content || ''}</textarea></div>`; 
-            document.getElementById('detail-actions').innerHTML = `<button class="btn btn-ghost" onclick="showNodeDetail('${data.id}')">取消</button><button class="btn btn-primary" onclick="saveNode()">保存</button>`; 
-        } 
-    }
-    function enableEditNode() { isEditingNode = true; fetch(`/api/node/${currentNodeId}`).then(r=>r.json()).then(renderNodeView); }
-    async function saveNode() { const data = { name: document.getElementById('edit-node-name').value, type: document.getElementById('edit-node-type').value, description: document.getElementById('edit-node-desc').value, content: document.getElementById('edit-node-content').value }; const res = await fetch(`/api/node/${currentNodeId}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); if(res.ok) { showToast('保存成功'); showNodeDetail(currentNodeId); await loadGraph(); } else showToast('保存失败', 'error'); }
-    async function deleteNode(id) {
-    // 1. 用户二次确认
-    if (!confirm('确定删除该节点及所有关联关系吗？此操作不可撤销。')) return;
-
-    try {
-        // 2. 发送删除请求
-        const res = await fetch(`/api/node/${id}`, { method: 'DELETE' });
-
-        // 3. 【关键修复】解析后端返回的 JSON 数据
-        // 后端 server.py 已修改为在 500 错误时也返回 JSON，必须解析才能获取错误详情
-        const data = await res.json();
-
-        // 4. 根据响应状态处理结果
-        if (res.ok) {
-            // 删除成功
-            hideDetailPanel();
-            showToast('节点已删除');
-            await loadGraph();
-        } else {
-            // 删除失败：显示后端返回的具体错误信息 (如 "database is locked")
-            showToast(`删除失败: ${data.error}`, 'error');
+                if (res.ok) {
+                    showToast('JSON 载入成功');
+                    closeModal('load-json-modal');
+                    refreshGraph();
+                } else {
+                    const err = await res.json();
+                    showToast(err.error, 'error');
+                }
+            } catch (e) {
+                showToast('文件解析失败，请检查格式', 'error');
+            }
         }
-    } catch (e) {
-        // 捕获网络错误或 JSON 解析异常
-        console.error(e);
-        showToast(`请求异常: ${e.message}`, 'error');
-    }
-}
 
-    function showEdgeDetail(id) { currentEdgeId = id; currentNodeId = null; isEditingNode = false; isEditingEdge = false; const edge = edges.get(id); const fromNode = nodes.get(edge.from); const toNode = nodes.get(edge.to); document.getElementById('detail-title').innerText = '关系详情'; renderEdgeView({ id, type: edge.label, from_name: fromNode.label, to_name: toNode.label, instruction: edge.instruction, condition: edge.condition }); openDetailPanel(); }
-    function renderEdgeView(data) { const body = document.getElementById('detail-body'); if (!isEditingEdge) { body.innerHTML = `<div class="detail-field"><div class="detail-label">关系类型</div><div class="detail-value" style="color:${edgeColors[data.type]}">${data.type}</div></div><div class="detail-field"><div class="detail-label">起始节点</div><div class="detail-value">${data.from_name}</div></div><div class="detail-field"><div class="detail-label">目标节点</div><div class="detail-value">${data.to_name}</div></div><div class="detail-field"><div class="detail-label">说明 / 指令</div><div class="detail-value">${data.instruction || '-'}</div></div><div class="detail-field"><div class="detail-label">触发条件</div><div class="detail-value">${data.condition || '-'}</div></div>`; document.getElementById('detail-actions').innerHTML = `<button class="btn btn-ghost" onclick="enableEditEdge()">编辑</button><button class="btn btn-danger" onclick="deleteEdge('${data.id}')">删除</button>`; } else { body.innerHTML = `<div class="form-group"><label class="form-label">关系类型</label><select id="edit-edge-type" class="form-select"><option ${data.type==='USED_SKILL'?'selected':''}>USED_SKILL</option><option ${data.type==='SOLVED_BY'?'selected':''}>SOLVED_BY</option><option ${data.type==='REQUIRES'?'selected':''}>REQUIRES</option><option ${data.type==='PATCHES'?'selected':''}>PATCHES</option><option ${data.type==='CONFLICTS_WITH'?'selected':''}>CONFLICTS_WITH</option></select></div><div class="form-group"><label class="form-label">说明</label><textarea id="edit-edge-instruction" class="form-textarea">${data.instruction||''}</textarea></div><div class="form-group"><label class="form-label">条件</label><textarea id="edit-edge-condition" class="form-textarea">${data.condition||''}</textarea></div>`; document.getElementById('detail-actions').innerHTML = `<button class="btn btn-ghost" onclick="showEdgeDetail('${data.id}')">取消</button><button class="btn btn-primary" onclick="saveEdge()">保存</button>`; } }
-    function enableEditEdge() { isEditingEdge = true; const edge = edges.get(currentEdgeId); const fN = nodes.get(edge.from); const tN = nodes.get(edge.to); renderEdgeView({ id: currentEdgeId, type: edge.label, from_name: fN.label, to_name: tN.label, instruction: edge.instruction, condition: edge.condition }); }
-    async function saveEdge() { const data = { type: document.getElementById('edit-edge-type').value, instruction: document.getElementById('edit-edge-instruction').value, condition: document.getElementById('edit-edge-condition').value }; const res = await fetch(`/api/edge/${currentEdgeId}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); if(res.ok) { showToast('保存成功'); showEdgeDetail(currentEdgeId); await loadGraph(); } else showToast('保存失败', 'error'); }
-    async function deleteEdge(id) { if (!confirm('确定删除该关系吗？')) return; const res = await fetch(`/api/edge/${id}`, { method: 'DELETE' }); if(res.ok) { hideDetailPanel(); showToast('关系已删除'); await loadGraph(); } else showToast('删除失败', 'error'); }
+        async function switchDb() {
+            let path = document.getElementById('db-path-input').value.trim();
+            if (!path) return showToast('请输入数据库路径', 'error');
 
-    function openDetailPanel() { document.getElementById('detail-panel').classList.add('open'); }
-    function hideDetailPanel() { document.getElementById('detail-panel').classList.remove('open'); }
-    function openModal(id) { document.getElementById(id).classList.add('open'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-    function togglePanel() { document.getElementById('side-panel').classList.toggle('collapsed'); }
-    function handleTypeFilter(val) { filterType = val; filterLocalData(); }
-    let searchTimeout;
-    function handleSearch(val) { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { searchKeyword = val; filterLocalData(); }, 300); }
-    function focusNode(id) { network.focus(id, { scale: 1.5, animation: true }); network.selectNodes([id]); showNodeDetail(id); }
-    function focusEdge(id) { 
-        const edge = edges.get(id); 
-        if (edge && edge.from) {
-            // 聚焦到该关系的起始节点，实现平滑跳转
-            network.focus(edge.from, { scale: 1.5, animation: true }); 
+            const res = await fetch('/api/switch-db', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path })
+            });
+
+            if (res.ok) {
+                showToast('数据库切换成功');
+                closeModal('switch-db-modal');
+                refreshGraph();
+            } else {
+                const err = await res.json();
+                showToast(err.error, 'error');
+            }
         }
-        network.selectEdges([id]); 
-        showEdgeDetail(id); 
-    }
-    function toggleTimer() { const btn = document.getElementById('timer-btn'); if (timerInterval) { clearInterval(timerInterval); timerInterval = null; btn.innerText = '⏱ 定时: 关'; } else { timerInterval = setInterval(refreshGraph, 10000); btn.innerText = '⏱ 定时: 开'; showToast('已开启 10秒 自动刷新', 'success'); } }
 
-    async function loadJsonFile() { const file = document.getElementById('json-file-input').files[0]; if (!file) return showToast('请先选择一个 JSON 文件', 'error'); const text = await file.text(); try { const data = JSON.parse(text); const res = await fetch('/api/load-json', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); if(res.ok) { showToast('JSON 载入成功'); closeModal('load-json-modal'); refreshGraph(); } else { const err = await res.json(); showToast(err.error, 'error'); } } catch(e) { showToast('文件解析失败，请检查格式', 'error'); } }
-    async function switchDb() { const path = document.getElementById('db-path-input').value.trim(); if(!path) return showToast('请输入数据库路径', 'error'); const res = await fetch('/api/switch-db', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ path }) }); if(res.ok) { showToast('数据库切换成功'); closeModal('switch-db-modal'); refreshGraph(); } else { const err = await res.json(); showToast(err.error, 'error'); } }
-    async function resetDb() { const res = await fetch('/api/reset-db', { method: 'POST' }); if(res.ok) { showToast('已恢复默认数据库'); closeModal('switch-db-modal'); refreshGraph(); } }
-    async function setDefaultDb() { const res = await fetch('/api/set-default-db', { method: 'POST' }); if(res.ok) showToast('设置默认成功'); else { const err = await res.json(); showToast(err.error || '设置失败(JSON模式不支持)', 'error'); } }
+        async function resetDb() {
+            const res = await fetch('/api/reset-db', { method: 'POST' });
+            if (res.ok) {
+                showToast('已恢复默认数据库');
+                closeModal('switch-db-modal');
+                refreshGraph();
+            }
+        }
 
-    function exportJson() { document.querySelectorAll('.tb-menu').forEach(el => el.classList.remove('open')); if (!fullGraphData.nodes.length && !fullGraphData.edges.length) return showToast('当前没有数据可导出', 'error'); const blob = new Blob([JSON.stringify(fullGraphData, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'graph_export.json'; a.click(); URL.revokeObjectURL(url); showToast('JSON 文件已下载'); }
-    async function exportSqlite() { 
-        document.querySelectorAll('.tb-menu').forEach(el => el.classList.remove('open')); 
-        try { 
-            showToast('正在生成 SQLite 文件...', 'success'); 
-            const res = await fetch('/api/export-sqlite'); 
-            if (!res.ok) { 
-                // 优化错误提示，如果是 404 明确告诉用户原因
-                if(res.status === 404) throw new Error('接口不存在 (404)，请检查后端 server.py 是否已添加 export-sqlite 接口并重启服务'); 
-                const err = await res.json(); throw new Error(err.error || '导出失败'); 
-            } 
-            const blob = await res.blob(); 
-            const url = URL.createObjectURL(blob); 
-            const a = document.createElement('a'); 
-            a.href = url; 
-            a.download = 'graph_export.db'; 
-            a.click(); 
-            URL.revokeObjectURL(url); 
-            showToast('SQLite 文件已下载'); 
-        } catch (e) { showToast(e.message, 'error'); } 
-    }
+        async function setDefaultDb() {
+            const res = await fetch('/api/set-default-db', { method: 'POST' });
+            if (res.ok) {
+                showToast('设置默认成功');
+            } else {
+                const err = await res.json();
+                handleApiError(err, '设置失败');
+            }
+        }
 
-    function showAddNodeModal() { document.getElementById('add-node-name').value=''; document.getElementById('add-node-desc').value=''; document.getElementById('add-node-content').value=''; openModal('add-node-modal'); }
-    async function submitAddNode() { const data = { name: document.getElementById('add-node-name').value, type: document.getElementById('add-node-type').value, description: document.getElementById('add-node-desc').value, content: document.getElementById('add-node-content').value }; if(!data.name) return showToast('节点名称不能为空', 'error'); const res = await fetch('/api/node', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); if(res.ok) { showToast('节点创建成功'); closeModal('add-node-modal'); await loadGraph(); } else showToast('创建失败', 'error'); }
-    
-    function showAddEdgeModal() { document.getElementById('add-edge-from').value = ''; document.getElementById('add-edge-to').value = ''; document.getElementById('ci-from').value = ''; document.getElementById('ci-to').value = ''; openModal('add-edge-modal'); filterCustomSelect('from', ''); filterCustomSelect('to', ''); }
-    function filterCustomSelect(type, val) { const kw = val.toLowerCase(); const dropdown = document.getElementById(`co-${type}`); dropdown.style.display = 'block'; const filtered = fullGraphData.nodes.filter(n => n.name && n.name.toLowerCase().includes(kw)); dropdown.innerHTML = filtered.length === 0 ? '<div style="padding:10px;color:var(--text-secondary);font-size:12px;">未找到节点</div>' : filtered.map(n => { const safeName = n.name.replace(/'/g, "\\'"); return `<div class="custom-option" onclick="selectCustomOption('${type}', '${n.id}', '${safeName}')">${n.name}</div>`; }).join(''); }
-    function selectCustomOption(type, id, name) { document.getElementById(`add-edge-${type}`).value = id; document.getElementById(`ci-${type}`).value = name; document.getElementById(`co-${type}`).style.display = 'none'; }
-    async function submitAddEdge() { const from_id = document.getElementById('add-edge-from').value; const to_id = document.getElementById('add-edge-to').value; if(!from_id || !to_id) return showToast('请从下拉列表中选择节点', 'error'); if(from_id === to_id) return showToast('起始节点和目标节点不能相同', 'error'); const data = { from_id, to_id, type: document.getElementById('add-edge-type').value, instruction: document.getElementById('add-edge-inst').value }; const res = await fetch('/api/edge', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); if(res.ok) { showToast('关系创建成功'); closeModal('add-edge-modal'); await loadGraph(); } else showToast('创建失败', 'error'); }
-    
-    function showToast(msg, type = 'success') { const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerText = msg; container.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000); }
-</script>
+        // ===================== 导出功能 =====================
+        
+        function exportJson() {
+            document.querySelectorAll('.tb-menu').forEach(el => el.classList.remove('open'));
+            if (!fullGraphData.nodes.length && !fullGraphData.edges.length) {
+                return showToast('当前没有数据可导出', 'error');
+            }
+
+            const blob = new Blob([JSON.stringify(fullGraphData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'graph_export.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('JSON 文件已下载');
+        }
+
+        async function exportSqlite() {
+            document.querySelectorAll('.tb-menu').forEach(el => el.classList.remove('open'));
+            try {
+                showToast('正在生成 SQLite 文件...', 'success');
+                const res = await fetch('/api/export-sqlite');
+                
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        throw new Error('接口不存在 (404)，请检查后端 server.py 是否已添加 export-sqlite 接口并重启服务');
+                    }
+                    const err = await res.json();
+                    throw new Error(err.error || '导出失败');
+                }
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'graph_export.db';
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('SQLite 文件已下载');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        // ===================== 新增节点与关系 =====================
+        
+        function showAddNodeModal() {
+            document.getElementById('add-node-name').value = '';
+            document.getElementById('add-node-desc').value = '';
+            document.getElementById('add-node-content').value = '';
+            openModal('add-node-modal');
+        }
+
+        async function submitAddNode() {
+            const data = {
+                name: document.getElementById('add-node-name').value,
+                type: document.getElementById('add-node-type').value,
+                description: document.getElementById('add-node-desc').value,
+                content: document.getElementById('add-node-content').value
+            };
+            
+            if (!data.name) return showToast('节点名称不能为空', 'error');
+
+            const res = await fetch('/api/node', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                showToast('节点创建成功');
+                closeModal('add-node-modal');
+                await loadGraph();
+            } else {
+                const err = await res.json();
+                handleApiError(err, '创建失败');
+            }
+        }
+
+        function showAddEdgeModal() {
+            document.getElementById('add-edge-from').value = '';
+            document.getElementById('add-edge-to').value = '';
+            document.getElementById('ci-from').value = '';
+            document.getElementById('ci-to').value = '';
+            openModal('add-edge-modal');
+            filterCustomSelect('from', '');
+            filterCustomSelect('to', '');
+        }
+
+        function filterCustomSelect(type, val) {
+            const kw = val.toLowerCase();
+            const dropdown = document.getElementById(`co-${type}`);
+            dropdown.style.display = 'block';
+            
+            const filtered = fullGraphData.nodes.filter(n => n.name && n.name.toLowerCase().includes(kw));
+            dropdown.innerHTML = filtered.length === 0 
+                ? '<div style="padding:10px;color:var(--text-secondary);font-size:12px;">未找到节点</div>' 
+                : filtered.map(n => {
+                    const safeName = n.name.replace(/'/g, "\\'");
+                    return `<div class="custom-option" onclick="selectCustomOption('${type}', '${n.id}', '${safeName}')">${n.name}</div>`;
+                }).join('');
+        }
+
+        function selectCustomOption(type, id, name) {
+            document.getElementById(`add-edge-${type}`).value = id;
+            document.getElementById(`ci-${type}`).value = name;
+            document.getElementById(`co-${type}`).style.display = 'none';
+        }
+
+        async function submitAddEdge() {
+            const from_id = document.getElementById('add-edge-from').value;
+            const to_id = document.getElementById('add-edge-to').value;
+            
+            if (!from_id || !to_id) return showToast('请从下拉列表中选择节点', 'error');
+            if (from_id === to_id) return showToast('起始节点和目标节点不能相同', 'error');
+
+            const data = {
+                from_id,
+                to_id,
+                type: document.getElementById('add-edge-type').value,
+                instruction: document.getElementById('add-edge-inst').value
+            };
+
+            const res = await fetch('/api/edge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                showToast('关系创建成功');
+                closeModal('add-edge-modal');
+                await loadGraph();
+            } else {
+                const err = await res.json();
+                handleApiError(err, '创建失败');
+            }
+        }
+
+        // ===================== 统一工具函数 =====================
+        
+        // 统一的 API 错误拦截处理，解决 JSON 模式误报故障提示
+        // 轻量级错误语义拦截器（不改后端协议，仅前端映射）
+		function handleApiError(errorObj, defaultMsg = '操作失败') {
+			const errMsg = (errorObj && errorObj.error) || defaultMsg;
+			
+			// 1. 内存模式拦截
+			if (errMsg.includes('JSON')) {
+				showToast('当前为 JSON 内存模式，不支持写入操作。\n请通过 [数据源 -> 切换 SQLite] 连接真实数据库。', 'error');
+				return;
+			}
+			
+			// 2. 数据库底层错误中文映射 (解决问题7的体感)
+			const errorMap = {
+				'database is locked': '数据库正被占用（可能正在写入），请稍等 2 秒后重试。',
+				'FOREIGN KEY constraint failed': '外键约束冲突，请检查关联的节点是否已被删除。',
+				'UNIQUE constraint failed': '数据重复，该记录可能已存在。',
+				'no such table': '数据库表结构缺失，请检查数据库文件是否损坏。'
+			};
+
+			for (const [key, friendlyMsg] of Object.entries(errorMap)) {
+				if (errMsg.toLowerCase().includes(key.toLowerCase())) {
+					showToast(friendlyMsg, 'error');
+					return;
+				}
+			}
+
+			// 3. 兜底原样显示
+			showToast(`${defaultMsg}:${errMsg}`, 'error');
+		}
+
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
 </body>
 </html>
